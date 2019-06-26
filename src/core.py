@@ -44,6 +44,55 @@ class Syntagm(ABC):
 
 
 @dataclass(frozen=True)
+class Sentence(ABC):  # ignore type
+
+    @classmethod
+    def from_paths(cls, paths : List[Path]) -> Sentence:
+        '''
+        build sentence from list of paths
+        '''
+        raise NotImplementedError()
+
+    def get_paths(self) -> List[Path]:
+        '''
+        get list of paths corresponding to sentence
+        '''
+        raise NotImplementedError()
+
+    def substitute(self, matching: Matching) -> Sentence:
+        paths = self.get_paths()
+        new_paths = []
+        for path in paths:
+            new_path = path.substitute(matching)
+            new_paths.append(new_path)
+        return self.from_paths(new_paths)
+
+    def normalize(self) -> Tuple[Sentence, Matching, List[Path]]:
+        paths = self.get_paths()
+        new_paths = []
+        varmap = Matching()
+        counter = 1
+        for path in paths:
+            if path.var:
+                new_var = Syntagm.new_var(counter)
+                counter += 1
+                varmap = varmap.setitem(new_var, path.value)
+            new_path = path.substitute(varmap)
+            new_paths.append(new_path)
+        new = self.from_paths(new_paths)
+        return new, varmap, new_paths
+
+    def denormalize(self, varmap: Matching) -> Sentence:
+        paths = self.get_paths()
+        new_paths = []
+        for path in paths:
+            new_path = path.substitute(varmap)
+            new_paths.append(new_path)
+        new = self.from_paths(new_paths)
+        return new
+
+
+@dataclass(frozen=True)
 class Path:
     value : Syntagm
     var : bool = False
@@ -56,11 +105,9 @@ class Path:
         return Path(value, self.var, segments)
 
 
-@dataclass
+@dataclass(frozen=True)
 class Matching:
     mapping : tuple = field(default_factory=tuple)  # Tuple[Tuple[Syntagm, Syntagm]]
-    fst : Optional[Sentence] = None
-    snd : Optional[Sentence] = None
 
     def __getitem__(self, key : Syntagm) -> Syntagm:
         for k, v in self.mapping:
@@ -86,63 +133,12 @@ class Matching:
         if not spent:
             mapping.append((key, value))
         mapping_tuple = tuple(mapping)
-        return Matching(mapping_tuple, self.fst, self.snd)
+        return Matching(mapping_tuple)
 
     def invert(self) -> Matching:
         mapping = tuple((v, k) for k, v in self.mapping)
-        return Matching(mapping, self.snd, self.fst)
+        return Matching(mapping)
 
     def get_real_matching(self, varmap : Matching) -> Matching:
         mapping = tuple((varmap[k], v) for k, v in self.mapping)
-        return Matching(mapping, self.fst, self.snd)
-
-
-@dataclass(frozen=True)
-class Sentence(ABC):  # ignore type
-
-    @classmethod
-    def from_paths(cls, paths : List[Path]) -> Sentence:
-        '''
-        build sentence from list of paths
-        '''
-        raise NotImplementedError()
-
-    def get_paths(self) -> List[Path]:
-        '''
-        get list of paths corresponding to sentence
-        '''
-        raise NotImplementedError()
-
-    def substitute(self, matching: Matching) -> Sentence:
-        paths = self.get_paths()
-        new_paths = []
-        for path in paths:
-            new_path = path.substitute(matching)
-            new_paths.append(new_path)
-        return Sentence.from_paths(new_paths)
-
-    def normalize(self) -> Tuple[Sentence, Matching, List[Path]]:
-        paths = self.get_paths()
-        new_paths = []
-        varmap = Matching()
-        counter = 1
-        for path in paths:
-            if path.var:
-                new_var = Syntagm.new_var(counter)
-                counter += 1
-                varmap = varmap.setitem(new_var, path.value)
-            new_path = path.substitute(varmap)
-            new_paths.append(new_path)
-        new = Sentence.from_paths(new_paths)
-        varmap.fst = new
-        varmap.snd = self
-        return new, varmap, new_paths
-
-    def denormalize(self, varmap: Matching) -> Sentence:
-        paths = self.get_paths()
-        new_paths = []
-        for path in paths:
-            new_path = path.substitute(varmap)
-            new_paths.append(new_path)
-        new = Sentence.from_paths(new_paths)
-        return new
+        return Matching(mapping)

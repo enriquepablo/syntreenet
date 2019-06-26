@@ -17,4 +17,4 @@
 # along with any part of the terms project.
 # If not, see <http://www.gnu.org/licenses/>.
 
-from .ruleset import RETE
+from .ruleset import Rete

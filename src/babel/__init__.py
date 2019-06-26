@@ -16,14 +16,3 @@
 # You should have received a copy of the GNU General Public License
 # along with any part of the terms project.
 # If not, see <http://www.gnu.org/licenses/>.
-
-from typing import List, Any
-
-
-def get_parents(node : Any) -> List[Any]:
-    parents = []
-    while node is not None:
-        parents.append(node)
-        parent = node.parent
-    return parents
-

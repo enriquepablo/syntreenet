@@ -154,7 +154,7 @@ class Rete(ParentNode, ChildNode):
 
     def add_sentence(self, sentence : Sentence):
         paths = sentence.get_paths()
-        matching = Matching(fst=sentence)
+        matching = Matching()
         self.propagate(paths, matching)
 
     def tell(self, s : Any):
