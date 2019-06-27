@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import dataclass, field
 from abc import ABC
 from typing import List, Tuple, Optional
@@ -40,6 +41,11 @@ class Syntagm(ABC):
     def is_var(self) -> bool:
         '''
         whether the syntagm is a var,
+        '''
+
+    def can_follow(self, snd : Path, fst : Path) -> bool:
+        '''
+        whether the snd path can follow the fst in a sentenceset
         '''
 
 
@@ -102,7 +108,34 @@ class Path:
         segments = tuple([s in varmap and varmap[s] or s for s in
             self.segments])
         value = self.value in varmap and varmap[self.value] or self.value
-        return Path(value, self.var, segments)
+        return Path(value, value.is_var(), segments)
+
+    def change_value(self, val : Syntagm) -> Path:
+        return Path(val, val.is_var(), self.segments[:-1] + (val,))
+
+    def can_follow(self, base : Path) -> bool:
+        if len(self.segments) == 0:
+            return True
+        return self.segments[0].can_follow(self, base)
+
+    def change_subpath(self, path : Path, old_value : Syntagm) -> Path:
+        if len(self.segments) < len(path.segments):
+            return self
+        new_segments = []
+        for base, this in zip(path.segments[:-1], self.segments):
+            if base == this:
+                new_segments.append(base)
+            else:
+                break
+        else:
+            l = len(new_segments)
+            if self.segments[l] == old_value:
+                new_segments.append(path.segments[l])
+                new_segments += self.segments[l + 1:]
+                new_value = new_segments[-1]
+                return Path(new_value, new_value.is_var(), tuple(new_segments))
+        return self
+
 
 
 @dataclass(frozen=True)
@@ -120,6 +153,21 @@ class Matching:
             if k == key:
                 return True
         return False
+
+    def copy(self) -> Matching:
+        return Matching(copy(self.mapping))
+
+    def get(self, key : Syntagm) -> Optional[Syntagm]:
+        try:
+            return self[key]
+        except KeyError:
+            return None
+
+    def getkey(self, value : Syntagm) -> Optional[Syntagm]:
+        for k, v in self.mapping:
+            if value == v:
+                return k
+        return None
 
     def setitem(self, key : Syntagm, value : Syntagm) -> Matching:
         spent = False

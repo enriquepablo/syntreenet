@@ -91,3 +91,14 @@ r = Rete()
 
 r.tell(rule1)
 r.tell(rule2)
+
+
+thing = Word('thing')
+living = Word('living')
+animal = Word('animal')
+mammal = Word('mammal')
+primate = Word('primate')
+human = Word('human')
+man = Word('man')
+
+r.tell(Sen(living, isa, thing))

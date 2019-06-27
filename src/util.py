@@ -24,6 +24,6 @@ def get_parents(node : Any) -> List[Any]:
     parents = []
     while node is not None:
         parents.append(node)
-        parent = node.parent
+        node = node.parent
     return parents
 

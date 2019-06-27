@@ -23,15 +23,15 @@ from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Dict, Set, Tuple, Any, Optional, cast
 
-from .core import Sentence, Path, Matching
+from .core import Syntagm, Sentence, Path, Matching
 from .sentenceset import SentenceSet
 from .util import get_parents
 
 
 @dataclass(frozen=True)
 class Rule:
-    conditions : Tuple[Sentence]
-    consecuences : Tuple[Sentence]
+    conditions : tuple
+    consecuences : tuple
     varmaps : tuple = field(default_factory=tuple)  # Tuple[Tuple[Sentence, Matching]]
 
     def get_varmap(self, condition : Sentence) -> Matching:
@@ -56,55 +56,41 @@ class End:
 class EndNode(ChildNode, End):
 
     def add_matching(self, matching : Matching):
+        rete = get_parents(self)[-1]
         for rule in self.rules:
             if len(rule.conditions) > 1:
-                self.add_new_rule(rule, matching)
+                rete.add_new_rule(rule, matching)
             else:
-                self.add_new_sentences(rule, matching)
-
-    def add_new_rule(self, rule : Rule, cmatching : Matching):
-        rete = get_parents(self)[-1]
-        varmap = rule.get_varmap(self.condition)
-        matching = cmatching.get_real_matching(varmap)
-        conds = tuple(c.substitute(varmap) for c in
-                rule.conditions if c != self.condition)
-        cons = tuple(c.substitute(varmap) for c in rule.consecuences)
-        cons = cast(Tuple[Sentence], cons)
-        conds = cast(Tuple[Sentence], conds)
-        new_rule = Rule(conds, cons)
-        rete.add_rule(new_rule)
-
-    def add_new_sentences(self, rule : Rule, cmatching : Matching):
-        rete = get_parents(self)[-1]
-        varmap = rule.get_varmap(self.condition)
-        matching = cmatching.get_real_matching(varmap)
-        cons = [c.substitute(varmap) for c in rule.consecuences]
-        rete.pending += cons
-        rete.proccess()
+                rete.add_new_sentences(rule, matching)
 
 
 @dataclass
 class ParentNode:
     var_child : Optional[ParentNode] = None
+    var_children : Dict[Path, ParentNode] = field(default_factory=dict)
     children : Dict[Path, ParentNode] = field(default_factory=dict)
     endnode : Optional[EndNode] = None
 
     def propagate(self, paths : List[Path], matching : Matching):
-
         visited = get_parents(self)
         if paths:
             path = paths.pop()
             for node in visited:
                 if path in node.children:
-                    node.children[path].propagate(copy(paths), matching)
+                    node.children[path].propagate(copy(paths), matching.copy())
+                var = cast(Syntagm, matching.getkey(path.value))
+                if var:
+                    new_path = path.change_value(var)
+                    if new_path in node.var_children:
+                        new_paths = [p.change_subpath(new_path, path.value) for p in paths]
+                        node.var_children[new_path].propagate(new_paths, matching.copy())
                 if node.var_child:
-                    if node.var_child.value in matching:
-                        if matching[node.var_child.value] == path.value:
-                            node.var_child.propagate(copy(paths), matching)
-                    else:
-                        new_matching = matching.setitem(node.var_child.value,
-                                                        path.value)
-                        node.var_child.propagate(copy(paths), new_matching)
+                    var = node.var_child.value
+                    old_value = path.value
+                    new_matching = matching.setitem(var, old_value)
+                    new_path = path.change_value(var)
+                    new_paths = [p.change_subpath(new_path, old_value) for p in paths]
+                    node.var_child.propagate(new_paths, new_matching)
 
         if self.endnode:
             self.endnode.add_matching(matching)
@@ -127,36 +113,6 @@ class Rete(ParentNode, ChildNode):
     pending : List[Sentence] = field(default_factory=list)
     processing : bool = False
 
-    def add_rule(self, rule):
-        varmaps = []
-        endnodes = []
-        for cond in rule.conditions:
-            condition, varmap, paths = cond.normalize()
-            varmaps.append((condition, varmap))
-            node = self
-            paths_left = []
-            for i, path in enumerate(paths):
-                if path in node.children:
-                    node = node.children[path]
-                else:
-                    paths_left = paths[i:]
-                    break
-            for path in paths_left:
-                next_node = Node(path, path.var, parent=node)
-                node.children[path] = next_node
-                node = next_node
-            if node.endnode is None:
-                node.endnode = EndNode(condition=cond, parent=node)
-            endnodes.append(node.endnode)
-        final_rule = Rule(rule.conditions, rule.consecuences, tuple(varmaps))
-        for en in endnodes:
-            en.rules.add(final_rule)
-
-    def add_sentence(self, sentence : Sentence):
-        paths = sentence.get_paths()
-        matching = Matching()
-        self.propagate(paths, matching)
-
     def tell(self, s : Any):
         if isinstance(s, Rule):
             self.add_rule(s)
@@ -166,6 +122,73 @@ class Rete(ParentNode, ChildNode):
 
     def ask(self, q : Sentence) -> Optional[List[Matching]]:
         return self.sset.ask_sentence(q)
+
+    def add_rule(self, rule):
+        varmaps = []
+        endnodes = []
+        for cond in rule.conditions:
+            condition, varmap, paths = cond.normalize()
+            varmaps.append((condition, varmap))
+            node = self
+            paths_left = []
+            visited_vars = []
+            for i, path in enumerate(paths):
+                if path.var:
+                    if path in node.var_children:
+                            node = node.var_children[path]
+                    elif path.value == node.var_child.value:
+                        visited_vars.append(path.value)
+                        node = node.var_child
+                    else:
+                        paths_left = paths[i:]
+                        break
+                elif path in node.children:
+                    node = node.children[path]
+                else:
+                    paths_left = paths[i:]
+                    break
+            for path in paths_left:
+                next_node = Node(path, path.var, parent=node)
+                if path.var:
+                    if path.value not in visited_vars:
+                        visited_vars.append(path.value)
+                        node.var_child = next_node
+                        node = next_node
+                    else:
+                        node.var_children.append(next_node)
+                        node = next_node
+                else:
+                    node.children.append(next_node)
+                    node = next_node
+            if node.endnode is None:
+                node.endnode = EndNode(condition=cond, parent=node)
+            endnodes.append(node.endnode)
+        final_rule = Rule(rule.conditions, rule.consecuences, tuple(varmaps))
+        for endnode in endnodes:
+            endnode.rules.add(final_rule)
+
+    def add_sentence(self, sentence : Sentence):
+        paths = sentence.get_paths()
+        matching = Matching()
+        self.propagate(paths, matching)
+
+    def add_new_rule(self, rule : Rule, condition : Sentence, cmatching : Matching):
+        varmap = rule.get_varmap(condition)
+        matching = cmatching.get_real_matching(varmap)
+        conds = tuple(c.substitute(varmap) for c in
+                rule.conditions if c != condition)
+        cons = tuple(c.substitute(varmap) for c in rule.consecuences)
+        cons = cast(Tuple[Sentence], cons)
+        conds = cast(Tuple[Sentence], conds)
+        new_rule = Rule(conds, cons)
+        self.add_rule(new_rule)
+
+    def add_new_sentences(self, rule : Rule, condition : Sentence, cmatching : Matching):
+        varmap = rule.get_varmap(condition)
+        matching = cmatching.get_real_matching(varmap)
+        cons = [c.substitute(varmap) for c in rule.consecuences]
+        self.pending += cons
+        self.process()
 
     def process(self):
         try:

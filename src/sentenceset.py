@@ -19,10 +19,12 @@
 
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
 from .core import Syntagm, Sentence, Path, Matching
+from .util import get_parents
 
 
 @dataclass
@@ -31,62 +33,62 @@ class BaseSSNode:
     Base class for sentence set nodes
     '''
     parent : Optional[BaseSSNode] = None
-    children : Dict[Syntagm, 'SSNode'] = field(default_factory=dict)
+    children : Dict[Path, 'SSNode'] = field(default_factory=dict)
     response : List[Matching] = field(default_factory=list)
 
-    def add_paths(self, paths : List[Path], visited : List[BaseSSNode]):
-        node = self
+    def follow_paths(self, paths : List[Path]):
+        parent = self
         for i, path in enumerate(paths):
-            for j, segment in enumerate(path.segments):
-                if segment in node.children:
-                    node = node.children[segment]
-                else:
-                    rest_path = path.segments[j:]
-                    path_rest = Path(path.value, path.var, rest_path)
-                    rest_paths = [path_rest] + paths[i + 1:]
-                    last_node = self.create_paths(rest_paths, visited)
-                    return last_node
-            visited = visited + [node]
-        return node
+            node = parent.children.get(path)
+            if node is None:
+                parent.create_paths(paths[i:])
+                return
+            parent = node
 
-    def create_paths(self, paths : List[Path], visited : List[BaseSSNode]):
-        for path in paths:
+    def create_paths(self, paths : List[Path]):
+        visited = get_parents(self)
+        if paths:
+            path = paths.pop()
             for node in visited:
-                tovisit = []
-                for segment in path.segments:
-                    new_node = SSNode(value=segment,
-                                      var=segment.is_var(),
+                if path.can_follow(node.path):
+                    new_node = SSNode(path=path,
+                                      var=path.var,
                                       parent=node)
-                    node.children[segment] = new_node
-                    node = new_node
-                tovisit.append(node)
-            visited += tovisit
-        return node
+                    node.children[path] = new_node
+                    new_node.create_paths(copy(paths))
 
     def query_paths(self, paths : List[Path], matching : Matching):
-        node = self
-        for i, path in enumerate(paths):
-            for j, segment in enumerate(path.segments):
-                if segment.is_var():
-                    if segment in matching:
-                        segment = matching[segment]
-                    else:
-                        for s in node.children.values():
-                            new_matching = matching.setitem(segment, s.value)
-                            rest_path = path.segments[j:]
-                            path_rest = Path(path.value, path.var, rest_path)
-                            rest_paths = [path_rest] + paths[i + 1:]
-                            self.query_paths(rest_paths, new_matching)
-                if segment in node.children:
-                    node = node.children[segment]
+        if paths:
+            path = paths.pop()
+            syn = path.value
+            child : Optional[SSNode]
+            if path.var:
+                if syn in matching:
+                    old_syn = matching[syn]
+                    path = path.change_value(old_syn)
+                    paths = [p.change_subpath(path, old_syn) for p in paths]
                 else:
-                    return
-        self.response.append(matching)
+                    for child in self.children.values():  # type
+                        new_path = path.change_value(child.path.value)
+                        rest_paths = [p.change_subpath(new_path, syn) for p in paths]
+                        new_matching = matching.setitem(syn, child.path.value)
+                        child.query_paths(rest_paths, new_matching)
+            child = self.children.get(path)
+            if child is not None:
+                child.query_paths(paths, matching)
+        else:
+            self.response_append(matching)
+
+    def response_append(self, matching : Matching):
+        if self.parent is None:
+            self.response.append(matching)
+        else:
+            self.parent.response_append(matching)
 
 
 @dataclass
 class ContentSSNode:
-    value : Syntagm
+    path : Path
     var : bool
 
 
@@ -100,7 +102,7 @@ class SentenceSet(BaseSSNode):
 
     def add_sentence(self, sentence: Sentence):
         paths = sentence.get_paths()
-        node = self.add_paths(paths, [])
+        self.follow_paths(paths)
 
     def ask_sentence(self, sentence : Sentence) -> Optional[List[Matching]]:
         self.response = []
