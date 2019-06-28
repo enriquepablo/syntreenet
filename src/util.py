@@ -23,7 +23,8 @@ from typing import List, Any
 def get_parents(node : Any) -> List[Any]:
     parents = []
     while node is not None:
-        parents.append(node)
+        if hasattr(node, 'path'):
+            parents.append(node)
         node = node.parent
     return parents
 

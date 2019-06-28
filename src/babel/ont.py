@@ -32,6 +32,14 @@ class Word(Syntagm):
     def is_var(self):
         return self.var
 
+    def can_follow(self, snd : Path, fst : Path) -> bool:
+        if fst.segments[0] == _subj and snd.segments[0] == _pred:
+            return True
+        if fst.segments[0] == _pred and snd.segments[0] == _obj:
+            return True
+        return False
+
+
 _pred = Word('__pred')
 _subj = Word('__subj')
 _obj = Word('__subj')
@@ -54,7 +62,7 @@ class Sen(Sentence):
         pred_path = Path(self.pred, False, (_pred, self.pred))
         subj_path = Path(self.subj, False, (_subj, self.subj))
         obj_path = Path(self.obj, False, (_obj, self.obj))
-        return sorted([pred_path, subj_path, obj_path], key=lambda path: path.segments)
+        return [pred_path, subj_path, obj_path]
 
     @classmethod
     def from_paths(cls, paths):

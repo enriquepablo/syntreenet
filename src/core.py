@@ -115,7 +115,7 @@ class Path:
 
     def can_follow(self, base : Path) -> bool:
         if len(self.segments) == 0:
-            return True
+            return True  # ???
         return self.segments[0].can_follow(self, base)
 
     def change_subpath(self, path : Path, old_value : Syntagm) -> Path:

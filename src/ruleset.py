@@ -76,6 +76,8 @@ class ParentNode:
         if paths:
             path = paths.pop()
             for node in visited:
+                if not path.can_follow(node.path):
+                    continue
                 if path in node.children:
                     node.children[path].propagate(copy(paths), matching.copy())
                 var = cast(Syntagm, matching.getkey(path.value))
