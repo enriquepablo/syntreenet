@@ -29,8 +29,15 @@ class Word(Syntagm):
     name : str
     var : bool = False
 
+    def __str__(self):
+        return self.name
+
     def is_var(self):
         return self.var
+
+    @classmethod
+    def new_var(cls, seed):
+        return Word(f'__X{seed}', True)
 
     def can_follow(self, snd : Path, fst : Path) -> bool:
         if fst.segments[0] == _subj and snd.segments[0] == _pred:
@@ -42,7 +49,7 @@ class Word(Syntagm):
 
 _pred = Word('__pred')
 _subj = Word('__subj')
-_obj = Word('__subj')
+_obj = Word('__obj')
 
 @dataclass(frozen=True)
 class Pred(Word):
@@ -58,23 +65,29 @@ class Sen(Sentence):
     pred : Pred
     obj : Word
 
+    def __str__(self):
+        return f'{self.subj} {self.pred} {self.obj}'
+
+    def __repr__(self):
+        return f'<Sen: {str(self)}>'
+
     def get_paths(self):
         pred_path = Path(self.pred, False, (_pred, self.pred))
-        subj_path = Path(self.subj, False, (_subj, self.subj))
-        obj_path = Path(self.obj, False, (_obj, self.obj))
-        return [pred_path, subj_path, obj_path]
+        subj_path = Path(self.subj, self.subj.is_var(), (_subj, self.subj))
+        obj_path = Path(self.obj, self.obj.is_var(), (_obj, self.obj))
+        return [subj_path, pred_path, obj_path]
 
     @classmethod
     def from_paths(cls, paths):
         pred = subj = obj = None
         for path in paths:
-            if path.segments[0] == _pred:
-                pred = path.value
-            elif path.segments[0] == _subj:
+            if path.segments[0] == _subj:
                 subj = path.value
+            elif path.segments[0] == _pred:
+                pred = path.value
             elif path.segments[0] == _obj:
                 obj = path.value
-        return cls(pred, subj, obj)
+        return cls(subj, pred, obj)
 
 
 X1 = Word('X1', True)
@@ -110,3 +123,4 @@ human = Word('human')
 man = Word('man')
 
 r.tell(Sen(living, isa, thing))
+r.tell(Sen(animal, isa, living))

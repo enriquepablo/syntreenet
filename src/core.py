@@ -80,7 +80,7 @@ class Sentence(ABC):  # ignore type
         counter = 1
         for path in paths:
             if path.var:
-                new_var = Syntagm.new_var(counter)
+                new_var = path.value.new_var(counter)
                 counter += 1
                 varmap = varmap.setitem(new_var, path.value)
             new_path = path.substitute(varmap)
@@ -104,6 +104,9 @@ class Path:
     var : bool = False
     segments : tuple = field(default_factory=tuple)  # Tuple[Syntagm]
 
+    def __str__(self):
+        return ' -> '.join([str(s) for s in self.segments])
+
     def substitute(self, varmap : Matching) -> Path:
         segments = tuple([s in varmap and varmap[s] or s for s in
             self.segments])
@@ -115,7 +118,7 @@ class Path:
 
     def can_follow(self, base : Path) -> bool:
         if len(self.segments) == 0:
-            return True  # ???
+            return False  # ???
         return self.segments[0].can_follow(self, base)
 
     def change_subpath(self, path : Path, old_value : Syntagm) -> Path:
@@ -141,6 +144,12 @@ class Path:
 @dataclass(frozen=True)
 class Matching:
     mapping : tuple = field(default_factory=tuple)  # Tuple[Tuple[Syntagm, Syntagm]]
+
+    def __str__(self):
+        return ', '.join([f'{k} : {v}' for k, v in self.mapping])
+
+    def __repr__(self):
+        return f'<Match: {str(self)}>'
 
     def __getitem__(self, key : Syntagm) -> Syntagm:
         for k, v in self.mapping:
@@ -188,5 +197,5 @@ class Matching:
         return Matching(mapping)
 
     def get_real_matching(self, varmap : Matching) -> Matching:
-        mapping = tuple((varmap[k], v) for k, v in self.mapping)
+        mapping = tuple((varmap.getkey(k), v) for k, v in self.mapping)
         return Matching(mapping)

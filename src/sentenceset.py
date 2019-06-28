@@ -25,6 +25,7 @@ from typing import List, Dict, Optional
 
 from .core import Syntagm, Sentence, Path, Matching
 from .util import get_parents
+from .logging import logger
 
 
 @dataclass
@@ -41,7 +42,9 @@ class BaseSSNode:
         for i, path in enumerate(paths):
             node = parent.children.get(path)
             if node is None:
-                parent.create_paths(paths[i:])
+                rest = paths[i:]
+                rest.reverse()
+                parent.create_paths(rest)
                 return
             parent = node
 
@@ -50,12 +53,13 @@ class BaseSSNode:
         if paths:
             path = paths.pop()
             for node in visited:
-                if path.can_follow(node.path):
-                    new_node = SSNode(path=path,
-                                      var=path.var,
-                                      parent=node)
-                    node.children[path] = new_node
-                    new_node.create_paths(copy(paths))
+                if hasattr(node, 'path') and not path.can_follow(node.path):
+                    continue
+                new_node = SSNode(path=path,
+                                  var=path.var,
+                                  parent=node)
+                node.children[path] = new_node
+                new_node.create_paths(copy(paths))
 
     def query_paths(self, paths : List[Path], matching : Matching):
         if paths:
@@ -80,6 +84,7 @@ class BaseSSNode:
             self.response_append(matching)
 
     def response_append(self, matching : Matching):
+        logger.debug(f'answer with {matching.mapping}')
         if self.parent is None:
             self.response.append(matching)
         else:
@@ -94,19 +99,26 @@ class ContentSSNode:
 
 @dataclass
 class SSNode(BaseSSNode, ContentSSNode):
-    pass
+
+    def __str__(self):
+        return f'node : {self.path}'
 
 
 @dataclass
 class SentenceSet(BaseSSNode):
 
+    def __str__(self):
+        return 'sset'
+
     def add_sentence(self, sentence: Sentence):
+        logger.debug(f'adding sentence {sentence} to sset')
         paths = sentence.get_paths()
         self.follow_paths(paths)
 
     def ask_sentence(self, sentence : Sentence) -> Optional[List[Matching]]:
         self.response = []
         paths = sentence.get_paths()
+        paths.reverse()
         matching = Matching()
         self.query_paths(paths, matching)
         return self.response
