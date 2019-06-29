@@ -43,7 +43,6 @@ class BaseSSNode:
             node = parent.children.get(path)
             if node is None:
                 rest = paths[i:]
-                rest.reverse()
                 parent.create_paths(rest)
                 return
             parent = node
@@ -51,7 +50,7 @@ class BaseSSNode:
     def create_paths(self, paths : List[Path]):
         visited = get_parents(self)
         if paths:
-            path = paths.pop()
+            path = paths.pop(0)
             for node in visited:
                 if hasattr(node, 'path') and not path.can_follow(node.path):
                     continue
@@ -63,7 +62,7 @@ class BaseSSNode:
 
     def query_paths(self, paths : List[Path], matching : Matching):
         if paths:
-            path = paths.pop()
+            path = paths.pop(0)
             syn = path.value
             child : Optional[SSNode]
             if path.var:
@@ -115,10 +114,9 @@ class SentenceSet(BaseSSNode):
         paths = sentence.get_paths()
         self.follow_paths(paths)
 
-    def ask_sentence(self, sentence : Sentence) -> Optional[List[Matching]]:
+    def ask_sentence(self, sentence : Sentence) -> List[Matching]:
         self.response = []
         paths = sentence.get_paths()
-        paths.reverse()
         matching = Matching()
         self.query_paths(paths, matching)
         return self.response

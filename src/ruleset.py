@@ -33,19 +33,12 @@ from .logging import logger
 class Rule:
     conditions : tuple = field(default_factory=tuple)
     consecuences : tuple = field(default_factory=tuple)
-    varmaps : tuple = field(default_factory=tuple)  # Tuple[Tuple[Sentence, Matching]]
     empty_matching : Matching = Matching()
 
     def __str__(self):
         conds = ';\n'.join([str(c) for c in self.conditions])
         cons = ';\n'.join([str(c) for c in self.consecuences])
         return f'{conds}\n->\n{cons}'
-
-    def get_varmap(self, condition : Sentence) -> Matching:
-        for varmap in self.varmaps:
-            if condition == varmap[0]:
-                return varmap[1]
-        return self.empty_matching
 
 
 @dataclass
@@ -62,8 +55,7 @@ class Activation:
 
 @dataclass
 class End:
-    condition : Sentence
-    rules : List[Rule] = field(default_factory=list)
+    conditions : Dict[Sentence, Tuple[Matching, Rule]] = field(default_factory=dict)
 
 
 @dataclass
@@ -74,8 +66,9 @@ class EndNode(ChildNode, End):
 
     def add_matching(self, matching : Matching):
         rete = get_parents(self)[-1]
-        for rule in self.rules:
-            activation = Activation(rule, matching, self.condition)
+        for condition, (varmap, rule) in self.conditions.items():
+            real_matching = matching.get_real_matching(varmap)
+            activation = Activation(rule, real_matching, condition)
             rete.activations.append(activation)
         rete.process()
 
@@ -90,23 +83,23 @@ class ParentNode:
     def propagate(self, paths : List[Path], matching : Matching):
         visited = get_parents(self)
         if paths:
-            path = paths.pop()
+            path = paths.pop(0)
             for node in visited:
                 if hasattr(node, 'path') and not path.can_follow(node.path):
                     continue
                 if path in node.children:
                     node.children[path].propagate(deepcopy(paths), matching.copy())
-                var = cast(Syntagm, matching.getkey(path.value))
-                if var:
+                var : Optional[Syntagm] = matching.getkey(path.value)
+                if var is not None:
                     new_path = path.change_value(var)
                     if new_path in node.var_children:
                         new_paths = [p.change_subpath(new_path, path.value) for p in paths]
                         node.var_children[new_path].propagate(new_paths, matching.copy())
                 if node.var_child:
-                    var = node.var_child.path.value
+                    child_var = node.var_child.path.value
                     old_value = path.value
-                    new_matching = matching.setitem(var, old_value)
-                    new_path = path.change_value(var)
+                    new_matching = matching.setitem(child_var, old_value)
+                    new_path = path.change_value(child_var)
                     new_paths = [p.change_subpath(new_path, old_value) for p in paths]
                     node.var_child.propagate(new_paths, new_matching)
 
@@ -151,11 +144,9 @@ class Rete(ParentNode, ChildNode):
 
     def add_rule(self, rule):
         logger.info(f'adding rule\n{rule}')
-        varmaps = []
         endnodes = []
         for cond in rule.conditions:
             varmap, paths = cond.normalize()
-            varmaps.append((cond, varmap))
             node = self
             paths_left = []
             visited_vars = []
@@ -188,51 +179,43 @@ class Rete(ParentNode, ChildNode):
                     node.children[path] = next_node
                     node = next_node
             if node.endnode is None:
-                node.endnode = EndNode(condition=cond, parent=node)
-            endnodes.append(node.endnode)
-        final_rule = Rule(rule.conditions, rule.consecuences, tuple(varmaps))
-        for endnode in endnodes:
-            endnode.rules.append(final_rule)
+                node.endnode = EndNode(parent=node)
+            node.endnode.conditions[cond] = (varmap, rule)
 
     def add_sentence(self, sentence : Sentence):
         logger.debug(f'adding sentence "{sentence}" to rete')
         paths = sentence.get_paths()
-        paths.reverse()
         matching = Matching()
         self.propagate(paths, matching)
 
     def add_new_rule(self, act : Activation):
-        rule = act.precedent
-        varmap = rule.get_varmap(act.condition)
-        real_matching = act.matching.get_real_matching(varmap)
-        conds = tuple(c.substitute(real_matching) for c in
+        rule = cast(Rule, act.precedent)
+        conds = tuple(c.substitute(act.matching) for c in
                 rule.conditions if c != act.condition)
-        cons = tuple(c.substitute(real_matching) for c in rule.consecuences)
+        cons = tuple(c.substitute(act.matching) for c in rule.consecuences)
         cons = cast(Tuple[Sentence], cons)
         conds = cast(Tuple[Sentence], conds)
         new_rule = Rule(conds, cons)
         self.add_rule(new_rule)
 
     def add_new_sentences(self, act : Activation):
-        rule = act.precedent
-        varmap = rule.get_varmap(act.condition)
-        real_matching = act.matching.get_real_matching(varmap)
-        cons = tuple(c.substitute(real_matching) for c in rule.consecuences)
+        rule = cast(Rule, act.precedent)
+        cons = tuple(c.substitute(act.matching) for c in rule.consecuences)
         acts = [Activation(c) for c in cons]
-        self.activations += acts
+        self.activations.extend(acts)
         self.process()
 
     def process(self):
         if not self.processing:
             self.processing = True
             while self.activations:
-                act = self.activations.pop()
+                act = self.activations.pop(0)
                 s = act.precedent
                 if isinstance(s, Sentence):
                     if not self.ask(s):
                         logger.info(f'adding sentence "{s}"')
-                        self.sset.add_sentence(s)
                         self.add_sentence(s)
+                        self.sset.add_sentence(s)
                 elif isinstance(s, Rule):
                     if len(s.conditions) > 1:
                         self.add_new_rule(act)
