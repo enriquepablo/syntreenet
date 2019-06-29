@@ -124,3 +124,7 @@ man = Word('man')
 
 r.tell(Sen(living, isa, thing))
 r.tell(Sen(animal, isa, living))
+r.tell(Sen(mammal, isa, animal))
+r.tell(Sen(primate, isa, mammal))
+r.tell(Sen(human, isa, primate))
+r.tell(Sen(man, isa, human))

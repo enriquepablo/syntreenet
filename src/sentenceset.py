@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from copy import copy
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
@@ -59,7 +59,7 @@ class BaseSSNode:
                                   var=path.var,
                                   parent=node)
                 node.children[path] = new_node
-                new_node.create_paths(copy(paths))
+                new_node.create_paths(deepcopy(paths))
 
     def query_paths(self, paths : List[Path], matching : Matching):
         if paths:

@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from copy import copy
+from copy import deepcopy
 from dataclasses import dataclass, field
 from abc import ABC
 from typing import List, Tuple, Optional
@@ -73,7 +73,7 @@ class Sentence(ABC):  # ignore type
             new_paths.append(new_path)
         return self.from_paths(new_paths)
 
-    def normalize(self) -> Tuple[Sentence, Matching, List[Path]]:
+    def normalize(self) -> Tuple[Matching, List[Path]]:
         paths = self.get_paths()
         new_paths = []
         varmap = Matching()
@@ -85,8 +85,7 @@ class Sentence(ABC):  # ignore type
                 varmap = varmap.setitem(new_var, path.value)
             new_path = path.substitute(varmap)
             new_paths.append(new_path)
-        new = self.from_paths(new_paths)
-        return new, varmap, new_paths
+        return varmap, new_paths
 
     def denormalize(self, varmap: Matching) -> Sentence:
         paths = self.get_paths()
@@ -164,7 +163,7 @@ class Matching:
         return False
 
     def copy(self) -> Matching:
-        return Matching(copy(self.mapping))
+        return Matching(deepcopy(self.mapping))
 
     def get(self, key : Syntagm) -> Optional[Syntagm]:
         try:
@@ -197,5 +196,8 @@ class Matching:
         return Matching(mapping)
 
     def get_real_matching(self, varmap : Matching) -> Matching:
-        mapping = tuple((varmap.getkey(k), v) for k, v in self.mapping)
-        return Matching(mapping)
+        real_mapping = []
+        for k, v in self.mapping:
+            k = varmap.get(k) or k
+            real_mapping.append((k, v))
+        return Matching(tuple(real_mapping))
