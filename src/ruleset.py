@@ -62,7 +62,7 @@ class End:
 class EndNode(ChildNode, End):
 
     def __str__(self):
-        return f'end for : {self.condition}'
+        return f'end for : {self.parent}'
 
     def add_matching(self, matching : Matching):
         rete = get_parents(self)[-1]
@@ -125,6 +125,7 @@ class Rete(ParentNode, ChildNode):
     sset : SentenceSet = field(default_factory=SentenceSet)
     activations : List[Activation] = field(default_factory=list)
     processing : bool = False
+    counter : int = 0
     _empty_matching : Matching = Matching()
     _empty_sentence : Sentence = Sentence()
 
@@ -218,6 +219,7 @@ class Rete(ParentNode, ChildNode):
             self.processing = True
             while self.activations:
                 act = self.activations.pop(0)
+                self.counter += 1
                 s = act.precedent
                 if isinstance(s, Sentence):
                     if not self.ask(s):

@@ -16,14 +16,3 @@
 # You should have received a copy of the GNU General Public License
 # along with any part of the terms project.
 # If not, see <http://www.gnu.org/licenses/>.
-
-import sys
-import logging
-
-logger = logging.getLogger()
-logger.setLevel(logging.ERROR)
-
-handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logger.addHandler(handler)
