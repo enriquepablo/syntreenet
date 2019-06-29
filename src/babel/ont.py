@@ -95,15 +95,15 @@ X2 = Word('X2', True)
 X3 = Word('X3', True)
 
 
-prem1 = Sen(X1, is_, X2)
-prem2 = Sen(X2, isa, X3)
-cons1 = Sen(X1, is_, X3)
+prem1 = Sen(X1, isa, X2)
+prem2 = Sen(X2, is_, X3)
+cons1 = Sen(X1, isa, X3)
 
 rule1 = Rule((prem1, prem2), (cons1,))
 
 
-prem3 = Sen(X1, isa, X2)
-cons2 = Sen(X1, isa, X3)
+prem3 = Sen(X1, is_, X2)
+cons2 = Sen(X1, is_, X3)
 
 rule2 = Rule((prem3, prem2), (cons2,))
 
@@ -122,9 +122,9 @@ primate = Word('primate')
 human = Word('human')
 man = Word('man')
 
-r.tell(Sen(living, isa, thing))
-r.tell(Sen(animal, isa, living))
-r.tell(Sen(mammal, isa, animal))
-r.tell(Sen(primate, isa, mammal))
-r.tell(Sen(human, isa, primate))
-r.tell(Sen(man, isa, human))
+r.tell(Sen(living, is_, thing))
+r.tell(Sen(animal, is_, living))
+r.tell(Sen(mammal, is_, animal))
+r.tell(Sen(primate, is_, mammal))
+r.tell(Sen(human, is_, primate))
+r.tell(Sen(man, is_, human))

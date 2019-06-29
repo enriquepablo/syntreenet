@@ -80,12 +80,14 @@ class Sentence(ABC):  # ignore type
         counter = 1
         for path in paths:
             if path.var:
-                new_var = path.value.new_var(counter)
-                counter += 1
-                varmap = varmap.setitem(new_var, path.value)
+                new_var = varmap.get(path.value)
+                if new_var is None:
+                    new_var = path.value.new_var(counter)
+                    counter += 1
+                    varmap = varmap.setitem(path.value, new_var)
             new_path = path.substitute(varmap)
             new_paths.append(new_path)
-        return varmap, new_paths
+        return varmap.invert(), new_paths
 
     def denormalize(self, varmap: Matching) -> Sentence:
         paths = self.get_paths()
@@ -105,6 +107,9 @@ class Path:
 
     def __str__(self):
         return ' -> '.join([str(s) for s in self.segments])
+
+    def __repr__(self):
+        return f'<Path: {str(self)}>'
 
     def substitute(self, varmap : Matching) -> Path:
         segments = tuple([s in varmap and varmap[s] or s for s in

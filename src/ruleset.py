@@ -36,9 +36,9 @@ class Rule:
     empty_matching : Matching = Matching()
 
     def __str__(self):
-        conds = ';\n'.join([str(c) for c in self.conditions])
-        cons = ';\n'.join([str(c) for c in self.consecuences])
-        return f'{conds}\n->\n{cons}'
+        conds = '; '.join([str(c) for c in self.conditions])
+        cons = '; '.join([str(c) for c in self.consecuences])
+        return f'{conds} -> {cons}'
 
 
 @dataclass
@@ -55,7 +55,7 @@ class Activation:
 
 @dataclass
 class End:
-    conditions : Dict[Sentence, Tuple[Matching, Rule]] = field(default_factory=dict)
+    conditions : List[Tuple[Sentence, Matching, Rule]] = field(default_factory=list)
 
 
 @dataclass
@@ -66,7 +66,7 @@ class EndNode(ChildNode, End):
 
     def add_matching(self, matching : Matching):
         rete = get_parents(self)[-1]
-        for condition, (varmap, rule) in self.conditions.items():
+        for condition, varmap, rule in self.conditions:
             real_matching = matching.get_real_matching(varmap)
             activation = Activation(rule, real_matching, condition)
             rete.activations.append(activation)
@@ -143,44 +143,52 @@ class Rete(ParentNode, ChildNode):
         return self.sset.ask_sentence(q)
 
     def add_rule(self, rule):
-        logger.info(f'adding rule\n{rule}')
+        logger.info(f'adding rule "{rule}"')
         endnodes = []
         for cond in rule.conditions:
             varmap, paths = cond.normalize()
-            node = self
-            paths_left = []
-            visited_vars = []
-            for i, path in enumerate(paths):
-                if path.var:
-                    if path in node.var_children:
-                            node = node.var_children[path]
-                    elif node.var_child and path.value == node.var_child.path.value:
-                        visited_vars.append(path.value)
-                        node = node.var_child
-                    else:
-                        paths_left = paths[i:]
-                        break
-                elif path in node.children:
-                    node = node.children[path]
-                else:
-                    paths_left = paths[i:]
-                    break
-            for path in paths_left:
-                next_node = Node(path, path.var, parent=node)
-                if path.var:
-                    if path.value not in visited_vars:
-                        visited_vars.append(path.value)
-                        node.var_child = next_node
-                        node = next_node
-                    else:
-                        node.var_children[path] = next_node
-                        node = next_node
-                else:
-                    node.children[path] = next_node
-                    node = next_node
+            node, visited_vars, paths_left = self._follow_paths(paths)
+            node = self._create_paths(node, paths_left, visited_vars)
             if node.endnode is None:
                 node.endnode = EndNode(parent=node)
-            node.endnode.conditions[cond] = (varmap, rule)
+            node.endnode.conditions.append((cond, varmap, rule))
+
+    def _follow_paths(self, paths : List[Path]) -> Tuple[ParentNode, List[Syntagm], List[Path]]:
+        node = self
+        visited_vars = []
+        rest_paths = []
+        for i, path in enumerate(paths):
+            if path.var:
+                if path in node.var_children:
+                    node = node.var_children[path]
+                elif node.var_child and path.value == node.var_child.path.value:
+                    visited_vars.append(path.value)
+                    node = node.var_child
+                else:
+                    rest_paths = paths[i:]
+                    break
+            elif path in node.children:
+                node = node.children[path]
+            else:
+                rest_paths = paths[i:]
+                break
+        return node, visited_vars, rest_paths
+
+    def _create_paths(self, node : ParentNode, paths : List[Path], visited : List[Syntagm]) -> Node:
+        for path in paths:
+            next_node = Node(path, path.var, parent=node)
+            if path.var:
+                if path.value not in visited:
+                    visited.append(path.value)
+                    node.var_child = next_node
+                    node = next_node
+                else:
+                    node.var_children[path] = next_node
+                    node = next_node
+            else:
+                node.children[path] = next_node
+                node = next_node
+        return node
 
     def add_sentence(self, sentence : Sentence):
         logger.debug(f'adding sentence "{sentence}" to rete')
