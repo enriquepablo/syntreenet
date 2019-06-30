@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from ..core import Syntagm, Sentence, Path
-from ..ruleset import Rule, Rete
+from ..ruleset import Rule, RuleSet
 
 
 @dataclass(frozen=True, order=True)
@@ -108,23 +108,24 @@ cons2 = Sen(X1, is_, X3)
 rule2 = Rule((prem3, prem2), (cons2,))
 
 
-r = Rete()
+r = RuleSet()
 
 r.tell(rule1)
 r.tell(rule2)
 
 
 thing = Word('thing')
-living = Word('living')
 animal = Word('animal')
 mammal = Word('mammal')
 primate = Word('primate')
 human = Word('human')
-man = Word('man')
+susan = Word('susan')
 
-r.tell(Sen(living, is_, thing))
-r.tell(Sen(animal, is_, living))
+r.tell(Sen(animal, is_, thing))
 r.tell(Sen(mammal, is_, animal))
 r.tell(Sen(primate, is_, mammal))
 r.tell(Sen(human, is_, primate))
-r.tell(Sen(man, is_, human))
+
+r.tell(Sen(susan, isa, human))
+
+
