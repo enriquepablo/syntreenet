@@ -75,9 +75,9 @@ class EndNode(ChildNode, End):
 
 @dataclass
 class ParentNode:
-    var_child : Optional[ParentNode] = None
-    var_children : Dict[Path, ParentNode] = field(default_factory=dict)
-    children : Dict[Path, ParentNode] = field(default_factory=dict)
+    var_child : Optional[Node] = None
+    var_children : Dict[Path, Node] = field(default_factory=dict)
+    children : Dict[Path, Node] = field(default_factory=dict)
     endnode : Optional[EndNode] = None
 
     def propagate(self, paths : List[Path], matching : Matching):
@@ -155,9 +155,9 @@ class KnowledgeBase(ParentNode, ChildNode):
             node.endnode.conditions.append((cond, varmap, rule))
 
     def _follow_paths(self, paths : List[Path]) -> Tuple[ParentNode, List[Syntagm], List[Path]]:
-        node = self
+        node : ParentNode = self
         visited_vars = []
-        rest_paths = []
+        rest_paths : List[Path] = []
         for i, path in enumerate(paths):
             if path.var:
                 if path in node.var_children:
@@ -189,7 +189,7 @@ class KnowledgeBase(ParentNode, ChildNode):
             else:
                 node.children[path] = next_node
                 node = next_node
-        return node
+        return cast(Node, node)
 
     def add_sentence(self, sentence : Sentence):
         logger.debug(f'adding sentence "{sentence}" to rete')

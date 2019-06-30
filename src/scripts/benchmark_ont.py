@@ -23,7 +23,7 @@ from timeit import timeit
 from ..babel import ont as o
 
 
-sets = (o.thing, o.living, o.animal, o.mammal, o.primate, o.human, o.man)
+sets = (o.thing, o.animal, o.mammal, o.primate, o.human)
 
 parser = argparse.ArgumentParser(description='Benchmark on ont.')
 parser.add_argument('-n', dest='n' ,type=int,
@@ -39,10 +39,10 @@ class Benchmark:
             name = f'{s.name}{i}'
             word = o.Word(name)
             sen = o.Sen(word, o.isa, s)
-            o.r.tell(sen)
+            o.kb.tell(sen)
 
 if __name__ == '__main__':
     args = parser.parse_args()
     t = timeit(Benchmark(args.n), number=1)
-    print(f'took {t} s to proccess {o.r.counter} activations\n'
-          f'    mean for activation : {(t/o.r.counter)*1000}ms')
+    print(f'took {t} s to proccess {o.kb.counter} activations\n'
+          f'    mean for activation : {(t/o.kb.counter)*1000}ms')
