@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from ..core import Syntagm, Sentence, Path
-from ..ruleset import Rule, RuleSet
+from ..ruleset import Rule, KnowledgeBase
 
 
 @dataclass(frozen=True, order=True)
@@ -90,9 +90,11 @@ class Sen(Sentence):
         return cls(subj, pred, obj)
 
 
-X1 = Word('X1', True)
-X2 = Word('X2', True)
-X3 = Word('X3', True)
+kb = KnowledgeBase()
+
+X1 = Word('X1', var=True)
+X2 = Word('X2', var=True)
+X3 = Word('X3', var=True)
 
 
 prem1 = Sen(X1, isa, X2)
@@ -107,12 +109,8 @@ cons2 = Sen(X1, is_, X3)
 
 rule2 = Rule((prem3, prem2), (cons2,))
 
-
-r = RuleSet()
-
-r.tell(rule1)
-r.tell(rule2)
-
+kb.tell(rule1)
+kb.tell(rule2)
 
 thing = Word('thing')
 animal = Word('animal')
@@ -121,11 +119,11 @@ primate = Word('primate')
 human = Word('human')
 susan = Word('susan')
 
-r.tell(Sen(animal, is_, thing))
-r.tell(Sen(mammal, is_, animal))
-r.tell(Sen(primate, is_, mammal))
-r.tell(Sen(human, is_, primate))
+kb.tell(Sen(animal, is_, thing))
+kb.tell(Sen(mammal, is_, animal))
+kb.tell(Sen(primate, is_, mammal))
+kb.tell(Sen(human, is_, primate))
 
-r.tell(Sen(susan, isa, human))
+kb.tell(Sen(susan, isa, human))
 
 

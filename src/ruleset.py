@@ -121,7 +121,7 @@ class Node(ParentNode, ChildNode, ContentNode):
 
 
 @dataclass
-class RuleSet(ParentNode, ChildNode):
+class KnowledgeBase(ParentNode, ChildNode):
     sset : SentenceSet = field(default_factory=SentenceSet)
     activations : List[Activation] = field(default_factory=list)
     processing : bool = False
