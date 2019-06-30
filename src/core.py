@@ -28,44 +28,73 @@ from typing import List, Tuple, Optional
 @dataclass(frozen=True)
 class Syntagm(ABC):
     '''
-    the components of sentences
+    The components of sentences. They are immutable objects with any
+    domain-specific internal structure.
+    They must be able to tell whether they are a variable or not, through their
+    is_var method.
     '''
 
     @classmethod
     def new_var(cls, seed : Optional[int] = None) -> Syntagm:
         '''
-        return a syntagm that is a var,
-        using the seed somehow in its internal structure
+        Return a syntagm that is a var,
+        using the seed somehow in its internal structure.
         '''
 
     def is_var(self) -> bool:
         '''
-        whether the syntagm is a var,
+        Whether the syntagm is a variable.
         '''
 
     def can_follow(self, snd : Path, fst : Path) -> bool:
         '''
-        whether the snd path can follow the fst in a sentenceset
+        whether the 2 paths can represent contiguous syntactic elements in a
+        sentence, with fst to the left of snd.
         '''
 
 
 @dataclass(frozen=True)
-class Sentence(ABC):  # ignore type
+class Sentence(ABC):
+    '''
+    A sentence is any syntactic construction that can be represented as a tree
+    of syntagms, where the leaves are the components of the sentence (there can
+    be syntagms in the tree that are syntactic markers and do not participate
+    in the sentence).
+    There is a main method that implementations of Sentence must provide, which
+    is get_paths. A path corresponds to a syntactic element of a sentence, i.e.
+    to a leaf in the sentence tree, and it is formed by the sequence of
+    syntagms that lead from the root to the leaf.
+
+    So paths correspond to usages of syntagms within a sentence, and are
+    hashable, so we can use them as indexes for the syntactic components that
+    they correspond to, and at the same time have a modifiable internal
+    structure, where we can play with the variables in the rules.
+
+    A sentence corresponds uniquely to a set of paths, though there may be sets of
+    paths that do not correspond t a sentence.
+    '''
 
     @classmethod
     def from_paths(cls, paths : List[Path]) -> Sentence:
         '''
-        build sentence from list of paths
+        Build sentence from a list of paths.
         '''
         raise NotImplementedError()
 
     def get_paths(self) -> List[Path]:
         '''
-        get list of paths corresponding to sentence
+        Get the list of paths corresponding to sentence. The paths should be
+        ordered in such a way that paths corresponding to elements to the left
+        of other elements should come before the paths of the other elements.
         '''
         raise NotImplementedError()
 
     def substitute(self, matching: Matching) -> Sentence:
+        '''
+        Return a new sentence, copy of self, where every appearance of the
+        syntagms given as keys in the matching has been replaced with the
+        syntagm given as value for the key in the matching.
+        '''
         paths = self.get_paths()
         new_paths = []
         for path in paths:
@@ -74,6 +103,15 @@ class Sentence(ABC):  # ignore type
         return self.from_paths(new_paths)
 
     def normalize(self) -> Tuple[Matching, List[Path]]:
+        '''
+        When the condition of a rule is added to the network, the variables it
+        carries are replaced by standard variables, so that all conditions deal
+        with the same variables. The 1st variable in the condition will be
+        called __X1, the 2nd __X2, etc.
+        The method will return the paths of the normalized condition, along
+        with a matching representing all the variable replacements that have
+        been done.
+        '''
         paths = self.get_paths()
         new_paths = []
         varmap = Matching()
@@ -89,18 +127,15 @@ class Sentence(ABC):  # ignore type
             new_paths.append(new_path)
         return varmap.invert(), new_paths
 
-    def denormalize(self, varmap: Matching) -> Sentence:
-        paths = self.get_paths()
-        new_paths = []
-        for path in paths:
-            new_path = path.substitute(varmap)
-            new_paths.append(new_path)
-        new = self.from_paths(new_paths)
-        return new
-
 
 @dataclass(frozen=True)
 class Path:
+    '''
+    A Path is basically a tuple of Syntagms, that represent a syntagm in a
+    sentence.
+    It has shortcuts for its value in the sentence, i.e. for the last syntagm
+    in the tuple.
+    '''
     value : Syntagm
     var : bool = False
     segments : tuple = field(default_factory=tuple)  # Tuple[Syntagm]
@@ -112,20 +147,37 @@ class Path:
         return f'<Path: {str(self)}>'
 
     def substitute(self, varmap : Matching) -> Path:
+        '''
+        Return a new Path copy of self where the syntagms appearing as keys in
+        varmap have been replaced by their corresponding values.
+        '''
         segments = tuple([s in varmap and varmap[s] or s for s in
             self.segments])
         value = self.value in varmap and varmap[self.value] or self.value
         return Path(value, value.is_var(), segments)
 
     def change_value(self, val : Syntagm) -> Path:
+        '''
+        Return new Path, copy of self, where the value -the last syntagm in the
+        tuple- has been changed for the one provided.
+        '''
         return Path(val, val.is_var(), self.segments[:-1] + (val,))
 
     def can_follow(self, base : Path) -> bool:
+        '''
+        Can the syntactic element represented by self occur immediatelly to the
+        right of the one represented by base?
+        '''
         if len(self.segments) == 0:
             return False  # ???
         return self.segments[0].can_follow(self, base)
 
     def change_subpath(self, path : Path, old_value : Syntagm) -> Path:
+        '''
+        If the provided path (with old_value as value) is a subpath of self,
+        replace that subpath with the provided path and its current value, and
+        return it as a new path.
+        '''
         if len(self.segments) < len(path.segments):
             return self
         new_segments = []
@@ -147,6 +199,9 @@ class Path:
 
 @dataclass(frozen=True)
 class Matching:
+    '''
+    A matching is basically a mapping of Syntagms.
+    '''
     mapping : tuple = field(default_factory=tuple)  # Tuple[Tuple[Syntagm, Syntagm]]
 
     def __str__(self):
@@ -168,21 +223,36 @@ class Matching:
         return False
 
     def copy(self) -> Matching:
+        '''
+        Return a copy of self
+        '''
         return Matching(deepcopy(self.mapping))
 
     def get(self, key : Syntagm) -> Optional[Syntagm]:
+        '''
+        Return the value corresponding to the provided key, or None if the key
+        is not present.
+        '''
         try:
             return self[key]
         except KeyError:
             return None
 
     def getkey(self, value : Syntagm) -> Optional[Syntagm]:
+        '''
+        Return the key corresponding to the provided value, or None if the
+        value is not present.
+        '''
         for k, v in self.mapping:
             if value == v:
                 return k
         return None
 
     def setitem(self, key : Syntagm, value : Syntagm) -> Matching:
+        '''
+        Return a new Matching, copy of self, with the addition (or the
+        replacement if the key was already in self) of the new key value pair.
+        '''
         spent = False
         mapping = []
         for k, v in self.mapping:
@@ -197,10 +267,18 @@ class Matching:
         return Matching(mapping_tuple)
 
     def invert(self) -> Matching:
+        '''
+        Return a new Matching, where the keys are the values in self and the
+        values the keys.
+        '''
         mapping = tuple((v, k) for k, v in self.mapping)
         return Matching(mapping)
 
     def get_real_matching(self, varmap : Matching) -> Matching:
+        '''
+        Replace the keys in self with the values in varmap corresponding to
+        those keys.
+        '''
         real_mapping = []
         for k, v in self.mapping:
             k = varmap.get(k) or k
