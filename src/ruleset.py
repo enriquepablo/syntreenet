@@ -31,6 +31,9 @@ from .logging import logger
 
 @dataclass(frozen=True)
 class Rule:
+    '''
+    A rule. A set of conditions plus a set of consecuences.
+    '''
     conditions : tuple = field(default_factory=tuple)
     consecuences : tuple = field(default_factory=tuple)
     empty_matching : Matching = Matching()
@@ -48,6 +51,10 @@ class ChildNode:
 
 @dataclass(frozen=True)
 class Activation:
+    '''
+    An activation is produced when a sentence matches a condition in a rule,
+    and contains the information needed to produce the new sentences or rules.
+    '''
     precedent : Union[Rule, Sentence]
     matching : Optional[Matching] = None
     condition : Optional[Sentence] = None
@@ -60,11 +67,24 @@ class End:
 
 @dataclass
 class EndNode(ChildNode, End):
+    '''
+    An endnode marks its parent node as a node corresponding to some
+    condition(s) in some rule(s).
+    It contains information about the rules that have this condition, and the
+    mapping of the (normalized) variables in the condition in the ruleset, to
+    the actual variables in the rule provided by the user.
+    '''
 
     def __str__(self):
         return f'end for : {self.parent}'
 
     def add_matching(self, matching : Matching):
+        '''
+        This is called when a new sentence matches all nodes leading to a node
+        with self as endnode.
+        matching contains the variable assignment that equates the condition
+        and the new sentence.
+        '''
         rete = get_parents(self)[-1]
         for condition, varmap, rule in self.conditions:
             real_matching = matching.get_real_matching(varmap)
@@ -75,12 +95,29 @@ class EndNode(ChildNode, End):
 
 @dataclass
 class ParentNode:
+    '''
+    A parent node in the tree of conditions.
+    children contains a mapping of paths to non-variable child nodes.
+    var_child points to a variable child node, if the variable appears for the
+    1st time in the condition.
+    var_children contains a mapping of paths to variable child nodes, if the
+    variable has already appeared in the current branch.
+    endnode points to an EndNode, in case this ParentNode corresponds with the
+    last path in a condition.
+
+    Both Node and KnowledgeBase are ParentNodes
+    '''
     var_child : Optional[Node] = None
     var_children : Dict[Path, Node] = field(default_factory=dict)
     children : Dict[Path, Node] = field(default_factory=dict)
     endnode : Optional[EndNode] = None
 
     def propagate(self, paths : List[Path], matching : Matching):
+        '''
+        Find the conditions that the sentence represented by the paths in paths
+        matches, recursively.
+        Accumulate variable assignments in matching.
+        '''
         visited = get_parents(self)
         if paths:
             path = paths.pop(0)
@@ -109,12 +146,21 @@ class ParentNode:
 
 @dataclass
 class ContentNode:
+    '''
+    A node that corresponds to a path in one or more conditions of rules.
+
+    Node is the only ContentNode (which is needed only to order correctly the
+    attributes in Node).
+    '''
     path : Path
     var : bool
 
 
 @dataclass
 class Node(ParentNode, ChildNode, ContentNode):
+    '''
+    A node in the tree of conditions.
+    '''
 
     def __str__(self):
         return f'node : {self.path}'
@@ -122,6 +168,10 @@ class Node(ParentNode, ChildNode, ContentNode):
 
 @dataclass
 class KnowledgeBase(ParentNode, ChildNode):
+    '''
+    The object that contains both the graph of rules (or the tree of
+    conditions) and the graph of sentences.
+    '''
     sset : SentenceSet = field(default_factory=SentenceSet)
     activations : List[Activation] = field(default_factory=list)
     processing : bool = False
@@ -133,6 +183,9 @@ class KnowledgeBase(ParentNode, ChildNode):
         return 'rete root'
 
     def tell(self, s : Any):
+        '''
+        Add new sentence (rule or fact) to the knowledge base.
+        '''
         if isinstance(s, Rule):
             activation = Activation(s, self._empty_matching, self._empty_sentence)
         elif isinstance(s, Sentence):
@@ -141,9 +194,18 @@ class KnowledgeBase(ParentNode, ChildNode):
         self.process()
 
     def ask(self, q : Sentence) -> Optional[List[Matching]]:
+        '''
+        Check whether a fact exists in the knowledge base, or, if it contains
+        variables, find all the variable assigments that correspond to facts
+        that exist in the knowledge base.
+        '''
         return self.sset.ask_sentence(q)
 
     def add_rule(self, rule):
+        '''
+        This method contains the agorithm to add new rules to the knowledge
+        base.
+        '''
         logger.info(f'adding rule "{rule}"')
         endnodes = []
         for cond in rule.conditions:
@@ -215,6 +277,10 @@ class KnowledgeBase(ParentNode, ChildNode):
         self.process()
 
     def process(self):
+        '''
+        Process all pending activations, and add the corresponding sentences to
+        the knowledge base.
+        '''
         if not self.processing:
             self.processing = True
             while self.activations:
