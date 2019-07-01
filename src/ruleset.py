@@ -203,7 +203,7 @@ class KnowledgeBase(ParentNode, ChildNode):
 
     def add_rule(self, rule):
         '''
-        This method contains the agorithm to add new rules to the knowledge
+        This method is the entry to the agorithm to add new rules to the knowledge
         base.
         '''
         logger.info(f'adding rule "{rule}"')
@@ -254,6 +254,10 @@ class KnowledgeBase(ParentNode, ChildNode):
         return cast(Node, node)
 
     def add_sentence(self, sentence : Sentence):
+        '''
+        This method is the entry to the algorithm that checks for conditions
+        that match a new fact being added to the knowledge base. 
+        '''
         logger.debug(f'adding sentence "{sentence}" to rete')
         paths = sentence.get_paths()
         matching = Matching()
