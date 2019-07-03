@@ -18,9 +18,8 @@
 # If not, see <http://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
-from enum import Enum
 
-from ..core import Syntagm, Sentence, Path
+from ..core import Syntagm, Fact, Path
 from ..ruleset import Rule, KnowledgeBase
 
 
@@ -60,7 +59,7 @@ isa = Pred('isa')
 
 
 @dataclass(frozen=True)
-class Sen(Sentence):
+class F(Fact):
     subj : Word
     pred : Pred
     obj : Word
@@ -69,7 +68,7 @@ class Sen(Sentence):
         return f'{self.subj} {self.pred} {self.obj}'
 
     def __repr__(self):
-        return f'<Sen: {str(self)}>'
+        return f'<F: {str(self)}>'
 
     def get_paths(self):
         pred_path = Path(self.pred, False, (_pred, self.pred))
@@ -97,15 +96,15 @@ X2 = Word('X2', var=True)
 X3 = Word('X3', var=True)
 
 
-prem1 = Sen(X1, isa, X2)
-prem2 = Sen(X2, is_, X3)
-cons1 = Sen(X1, isa, X3)
+prem1 = F(X1, isa, X2)
+prem2 = F(X2, is_, X3)
+cons1 = F(X1, isa, X3)
 
 rule1 = Rule((prem1, prem2), (cons1,))
 
 
-prem3 = Sen(X1, is_, X2)
-cons2 = Sen(X1, is_, X3)
+prem3 = F(X1, is_, X2)
+cons2 = F(X1, is_, X3)
 
 rule2 = Rule((prem3, prem2), (cons2,))
 
@@ -119,11 +118,11 @@ primate = Word('primate')
 human = Word('human')
 susan = Word('susan')
 
-kb.tell(Sen(animal, is_, thing))
-kb.tell(Sen(mammal, is_, animal))
-kb.tell(Sen(primate, is_, mammal))
-kb.tell(Sen(human, is_, primate))
+kb.tell(F(animal, is_, thing))
+kb.tell(F(mammal, is_, animal))
+kb.tell(F(primate, is_, mammal))
+kb.tell(F(human, is_, primate))
 
-kb.tell(Sen(susan, isa, human))
+kb.tell(F(susan, isa, human))
 
 

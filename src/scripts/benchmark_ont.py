@@ -38,11 +38,12 @@ class Benchmark:
             s = sets[randrange(len(sets))]
             name = f'{s.name}{i}'
             word = o.Word(name)
-            sen = o.Sen(word, o.isa, s)
+            sen = o.F(word, o.isa, s)
             o.kb.tell(sen)
 
 if __name__ == '__main__':
     args = parser.parse_args()
     t = timeit(Benchmark(args.n), number=1)
-    print(f'took {t} s to proccess {o.kb.counter} activations\n'
-          f'    mean for activation : {(t/o.kb.counter)*1000}ms')
+    print(f'took {t}sec to proccess {o.kb.counter} activations\n'
+          f'    mean for activation : {(t/o.kb.counter)*1000}ms\n'
+          f'    mean for added fact : {(t/args.n)*1000}ms')

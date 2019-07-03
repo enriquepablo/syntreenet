@@ -23,7 +23,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
-from .core import Syntagm, Sentence, Path, Matching
+from .core import Syntagm, Fact, Path, Matching
 from .util import get_parents
 from .logging import logger
 
@@ -31,8 +31,8 @@ from .logging import logger
 @dataclass
 class BaseSSNode:
     '''
-    Base class for sentence set nodes. Nodes have a parent that is either the
-    sentence set or another node, and children, which is a dictionary of paths
+    Base class for fact set nodes. Nodes have a parent that is either the
+    fact set or another node, and children, which is a dictionary of paths
     to nodes.
     '''
     parent : Optional[BaseSSNode] = None
@@ -41,7 +41,7 @@ class BaseSSNode:
 
     def follow_paths(self, paths : List[Path]):
         '''
-        Used while adding new sentences, to find the sequence of already
+        Used while adding new facts, to find the sequence of already
         existing nodes that correpond to its list of paths.
         '''
         parent = self
@@ -55,7 +55,7 @@ class BaseSSNode:
 
     def create_paths(self, paths : List[Path]):
         '''
-        Used while adding new sentences, to create the sequence of
+        Used while adding new facts, to create the sequence of
         nodes that correpond to its list of paths and did not exist previously.
         '''
         visited = get_parents(self)
@@ -73,7 +73,7 @@ class BaseSSNode:
     def query_paths(self, paths : List[Path], matching : Matching):
         '''
         Match the paths corresponding to a query (possibly containing
-        variables) with the paths in the nodes of the sentence set.
+        variables) with the paths in the nodes of the fact set.
         '''
         if paths:
             path = paths.pop(0)
@@ -108,7 +108,7 @@ class BaseSSNode:
 class ContentSSNode:
     '''
     A node with content, i.e., that corresponds to a syntactic element whithin a
-    sentence.
+    fact.
     '''
     path : Path
     var : bool
@@ -117,7 +117,7 @@ class ContentSSNode:
 @dataclass
 class SSNode(BaseSSNode, ContentSSNode):
     '''
-    Concrete nodes in the sentence set.
+    Concrete nodes in the fact set.
     '''
 
     def __str__(self):
@@ -125,32 +125,32 @@ class SSNode(BaseSSNode, ContentSSNode):
 
 
 @dataclass
-class SentenceSet(BaseSSNode):
+class FactSet(BaseSSNode):
     '''
-    A set of sentences arranged in a tree structure that facilitates queries.
+    A set of facts arranged in a tree structure that facilitates queries.
     '''
 
     def __str__(self):
-        return 'sset'
+        return 'fset'
 
-    def add_sentence(self, sentence: Sentence):
+    def add_fact(self, fact: Fact):
         '''
-        Add a new sentence to the set.
+        Add a new fact to the set.
         '''
-        logger.debug(f'adding sentence {sentence} to sset')
-        paths = sentence.get_paths()
+        logger.debug(f'adding fact {fact} to fset')
+        paths = fact.get_paths()
         self.follow_paths(paths)
 
-    def ask_sentence(self, sentence : Sentence) -> List[Matching]:
+    def ask_fact(self, fact : Fact) -> List[Matching]:
         '''
-        Query a sentence, possibly with variables. If the query matches no
-        sentences, the return value will be False. If the query matches
-        sentences, the return value will consist on all the assignments of the
-        variables in the query that correspond to a sentence in the set - or
+        Query a fact, possibly with variables. If the query matches no
+        facts, the return value will be False. If the query matches
+        facts, the return value will consist on all the assignments of the
+        variables in the query that correspond to a fact in the set - or
         True if there are no variables.
         '''
         self.response = []
-        paths = sentence.get_paths()
+        paths = fact.get_paths()
         matching = Matching()
         self.query_paths(paths, matching)
         if not self.response:

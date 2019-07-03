@@ -28,7 +28,7 @@ from typing import List, Tuple, Optional
 @dataclass(frozen=True)
 class Syntagm(ABC):
     '''
-    The components of sentences. They are immutable objects with any
+    The components of facts. They are immutable objects with any
     domain-specific internal structure.
     They must be able to tell whether they are a variable or not, through their
     is_var method.
@@ -49,49 +49,49 @@ class Syntagm(ABC):
     def can_follow(self, snd : Path, fst : Path) -> bool:
         '''
         whether the 2 paths can represent contiguous syntactic elements in a
-        sentence, with fst to the left of snd.
+        fact, with fst to the left of snd.
         '''
 
 
 @dataclass(frozen=True)
-class Sentence(ABC):
+class Fact(ABC):
     '''
-    A sentence is any syntactic construction that can be represented as a tree
-    of syntagms, where the leaves are the components of the sentence (there can
+    A fact is any syntactic construction that can be represented as a tree
+    of syntagms, where the leaves are the components of the fact (there can
     be syntagms in the tree that are syntactic markers and do not participate
-    in the sentence).
-    There is a main method that implementations of Sentence must provide, which
-    is get_paths. A path corresponds to a syntactic element of a sentence, i.e.
-    to a leaf in the sentence tree, and it is formed by the sequence of
+    in the fact).
+    There is a main method that implementations of Fact must provide, which
+    is get_paths. A path corresponds to a syntactic element of a fact, i.e.
+    to a leaf in the fact tree, and it is formed by the sequence of
     syntagms that lead from the root to the leaf.
 
-    So paths correspond to usages of syntagms within a sentence, and are
+    So paths correspond to usages of syntagms within a fact, and are
     hashable, so we can use them as indexes for the syntactic components that
     they correspond to, and at the same time have a modifiable internal
     structure, where we can play with the variables in the rules.
 
-    A sentence corresponds uniquely to a set of paths, though there may be sets of
-    paths that do not correspond t a sentence.
+    A fact corresponds uniquely to a set of paths, though there may be sets of
+    paths that do not correspond t a fact.
     '''
 
     @classmethod
-    def from_paths(cls, paths : List[Path]) -> Sentence:
+    def from_paths(cls, paths : List[Path]) -> Fact:
         '''
-        Build sentence from a list of paths.
+        Build fact from a list of paths.
         '''
         raise NotImplementedError()
 
     def get_paths(self) -> List[Path]:
         '''
-        Get the list of paths corresponding to sentence. The paths should be
+        Get the list of paths corresponding to fact. The paths should be
         ordered in such a way that paths corresponding to elements to the left
         of other elements should come before the paths of the other elements.
         '''
         raise NotImplementedError()
 
-    def substitute(self, matching: Matching) -> Sentence:
+    def substitute(self, matching: Matching) -> Fact:
         '''
-        Return a new sentence, copy of self, where every appearance of the
+        Return a new fact, copy of self, where every appearance of the
         syntagms given as keys in the matching has been replaced with the
         syntagm given as value for the key in the matching.
         '''
@@ -132,8 +132,8 @@ class Sentence(ABC):
 class Path:
     '''
     A Path is basically a tuple of Syntagms, that represent a syntagm in a
-    sentence.
-    It has shortcuts for its value in the sentence, i.e. for the last syntagm
+    fact.
+    It has shortcuts for its value in the fact, i.e. for the last syntagm
     in the tuple.
     '''
     value : Syntagm
