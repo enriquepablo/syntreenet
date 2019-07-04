@@ -121,21 +121,28 @@ class ParentNode:
         visited = get_parents(self)
         if paths:
             path = paths.pop(0)
+            # AA FR 03 - Algorithmic Analysis - Checking a Fact with the RuleSet
+            # AA FR 03 - visited contains all the parents of the current node
+            # up to the root node, and can_follow should weed ut most of them;
+            # this is something that depends on the internal complexity of the
+            # conditions.
             for node in visited:
                 if hasattr(node, 'path'):
                     if not path.can_follow(node.path):
                         continue
                 elif not first:
                     continue
-                if path in node.children:
-                    node.children[path].propagate(copy(paths), matching.copy())
+                child = node.children.get(path)
+                if child is not None:
+                    child.propagate(copy(paths), matching.copy())
                 var : Optional[Syntagm] = matching.getkey(path.value)
                 if var is not None:
                     new_path = path.change_value(var)
-                    if new_path in node.var_children:
+                    var_child = node.var_children.get(new_path)
+                    if var_child is not None:
                         new_paths = [p.change_subpath(new_path, path.value) for p in paths]
-                        node.var_children[new_path].propagate(new_paths, matching.copy())
-                if node.var_child:
+                        var_child.propagate(new_paths, matching.copy())
+                if node.var_child is not None:
                     child_var = node.var_child.path.value
                     old_value = path.value
                     new_matching = matching.setitem(child_var, old_value)
@@ -253,8 +260,9 @@ class KnowledgeBase(ParentNode, ChildNode):
                 # AA AR 05 - So this depends only on the complexity of the
                 # AA AR 05 - condition.
                 # AA AR 05 - wrt the size of the kb, this is O(1)
-                if path in node.var_children:
-                    node = node.var_children[path]
+                var_child = node.var_children.get(path)
+                if var_child is not None:
+                    node = var_child
                 elif node.var_child and path.value == node.var_child.path.value:
                     visited_vars.append(path.value)
                     node = node.var_child
