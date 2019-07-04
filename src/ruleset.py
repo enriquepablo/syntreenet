@@ -86,11 +86,11 @@ class EndNode(ChildNode, End):
         and the new fact.
         '''
         rete = get_parents(self)[-1]
-        # AA FR 10 - Algorithmic Analysis - Checking a Fact with the RuleSet
-        # AA FR 10 - Here we recurse over all the rules that have the condition
-        # AA FR 10 - that has been matched. This add a linear dependency on the number of
-        # AA FR 10 - consecuences to the complexity of adding a fact with all its
-        # AA FR 10 - consecuences.
+        # AA FR 10 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
+        # AA FR 10 1 - Here we recurse over all the rules that have the condition
+        # AA FR 10 2 - that has been matched. This add a linear dependency on the number of
+        # AA FR 10 3 - consecuences to the complexity of adding a fact with all its
+        # AA FR 10 4 - consecuences.
         for condition, varmap, rule in self.conditions:
             real_matching = matching.get_real_matching(varmap)
             activation = Activation(rule, real_matching, condition)
@@ -126,42 +126,42 @@ class ParentNode:
         visited = get_parents(self)
         if paths:
             path = paths.pop(0)
-            # AA FR 03 - Algorithmic Analysis - Checking a Fact with the RuleSet
-            # AA FR 03 - visited contains all the parents of the current node
-            # AA FR 03 - up to the root node, and can_follow should weed ut most of them;
-            # AA FR 03 - this is something that depends on the internal complexity of the
-            # AA FR 03 - conditions.
+            # AA FR 03 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
+            # AA FR 03 1 - visited contains all the parents of the current node
+            # AA FR 03 2 - up to the root node, and can_follow should weed ut most of them;
+            # AA FR 03 3 - this is something that depends on the internal complexity of the
+            # AA FR 03 4 - conditions.
             for node in visited:
                 if hasattr(node, 'path'):
                     if not path.can_follow(node.path):
                         continue
                 elif not first:
                     continue
-                # AA FR 04 - Algorithmic Analysis - Checking a Fact with the RuleSet
-                # AA FR 04 - Here we consult a hash table. This add a
-                # AA FR 04 - logarithmic dependency on the number of child nodes - on the
-                # AA FR 04 - size of the kb.
+                # AA FR 04 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                # AA FR 04 1 - Here we consult a hash table. This add a
+                # AA FR 04 2 - logarithmic dependency on the number of child nodes - on the
+                # AA FR 04 3 - size of the kb.
                 child = node.children.get(path)
                 if child is not None:
-                    # AA FR 05 - Algorithmic Analysis - Checking a Fact with the RuleSet
-                    # AA FR 05 - Recurse though child nodes. The cost of each
-                    # AA FR 05 - step is logarithmic wrt the size of the kb, as we've seen
-                    # AA FR 05 - above, and the depth of recursion reached here does not
-                    # AA FR 05 - depend on the size of the kb, but on the provided grammar.
+                    # AA FR 05 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                    # AA FR 05 1 - Recurse though child nodes. The cost of each
+                    # AA FR 05 2 - step is logarithmic wrt the size of the kb, as we've seen
+                    # AA FR 05 3 - above, and the depth of recursion reached here does not
+                    # AA FR 05 4 - depend on the size of the kb, but on the provided grammar.
                     child.propagate(copy(paths), matching.copy())
                 var : Optional[Syntagm] = matching.getkey(path.value)
                 if var is not None:
                     new_path = path.change_value(var)
-                    # AA FR 06 - Algorithmic Analysis - Checking a Fact with the RuleSet
-                    # AA FR 06 - Here we consult a hash table with very few
-                    # AA FR 06 - elements - at most the one less y than the number of
-                    # AA FR 06 - variables in the conditions it takes part of - so it
-                    # AA FR 06 - depends on the grammar (and should not be a dict).
+                    # AA FR 06 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                    # AA FR 06 1 - Here we consult a hash table with very few
+                    # AA FR 06 2 - elements - at most the one less y than the number of
+                    # AA FR 06 3 - variables in the conditions it takes part of - so it
+                    # AA FR 06 4 - depends on the grammar (and should not be a dict).
                     var_child = node.var_children.get(new_path)
                     if var_child is not None:
                         new_paths = [p.change_subpath(new_path, path.value) for p in paths]
-                        # AA FR 07 - Algorithmic Analysis - Checking a Fact with the RuleSet
-                        # AA FR 07 - The same as (AA FR 05)
+                        # AA FR 07 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                        # AA FR 07 1 - The same as (AA FR 05)
                         var_child.propagate(new_paths, matching.copy())
                 if node.var_child is not None:
                     child_var = node.var_child.path.value
@@ -169,13 +169,13 @@ class ParentNode:
                     new_matching = matching.setitem(child_var, old_value)
                     new_path = path.change_value(child_var)
                     new_paths = [p.change_subpath(new_path, old_value) for p in paths]
-                    # AA FR 08 - Algorithmic Analysis - Checking a Fact with the RuleSet
-                    # AA FR 08 - The same as (AA FR 05)
+                    # AA FR 08 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                    # AA FR 08 1 - The same as (AA FR 05)
                     node.var_child.propagate(new_paths, new_matching)
 
         if self.endnode:
-            # AA FR 09 - Algorithmic Analysis - Checking a Fact with the RuleSet
-            # AA FR 09 - Continue analysis in add_matching
+            # AA FR 09 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
+            # AA FR 09 1 - Continue analysis in add_matching
             self.endnode.add_matching(matching)
 
 
@@ -243,27 +243,27 @@ class KnowledgeBase(ParentNode, ChildNode):
         '''
         logger.info(f'adding rule "{rule}"')
         endnodes = []
-        # AA AR 01 - Algorithmic Analysis - Adding a Rule
-        # AA AR 01 - For each rule we process its conditions sequentially.
-        # AA AR 01 - This provides a linear dependence to processing a rule on the
-        # AA AR 01 - number of conditions it holds.
-        # AA AR 01 - wrt the size of the kb, this is O(1)
+        # AA AR 01 0 - Algorithmic Analysis - Adding a Rule
+        # AA AR 01 1 - For each rule we process its conditions sequentially.
+        # AA AR 01 2 - This provides a linear dependence to processing a rule on the
+        # AA AR 01 3 - number of conditions it holds.
+        # AA AR 01 4 - wrt the size of the kb, this is O(1)
         for cond in rule.conditions:
-            # AA AR 02 - Algorithmic Analysis - Adding a rule
-            # AA AR 02 - normalize will visit all segments in all paths corresponding
-            # AA AR 02 - to a condition. This only depends on the complexity of
-            # AA AR 02 - the condition.
-            # AA AR 02 - wrt the size of the kb, this is O(1)
+            # AA AR 02 0 - Algorithmic Analysis - Adding a rule
+            # AA AR 02 1 - normalize will visit all segments in all paths corresponding
+            # AA AR 02 2 - to a condition. This only depends on the complexity of
+            # AA AR 02 3 - the condition.
+            # AA AR 02 4 - wrt the size of the kb, this is O(1)
             varmap, paths = cond.normalize()
-            # AA AR 03 - Algorithmic Analysis - Adding a rule
-            # AA AR 03 - We continue the analisis whithin _follow_paths
+            # AA AR 03 0 - Algorithmic Analysis - Adding a rule
+            # AA AR 03 1 - We continue the analisis whithin _follow_paths
             node, visited_vars, paths_left = self._follow_paths(paths)
-            # AA AR 08 - Algorithmic Analysis - Adding a rule
-            # AA AR 08 - We continue the analisis whithin _create_paths
+            # AA AR 08 0 - Algorithmic Analysis - Adding a rule
+            # AA AR 08 1 - We continue the analisis whithin _create_paths
             node = self._create_paths(node, paths_left, visited_vars)
-            # AA AR 11 - Algorithmic Analysis - the rest of the operations from here on only operate on
-            # AA AR 11 - the information provided in the condition,
-            # AA AR 11 - and therefore are O(1) wrt the size of the kb.
+            # AA AR 11 0 - Algorithmic Analysis - the rest of the operations from here on
+            # AA AR 11 1 - only operate on the information provided in the condition,
+            # AA AR 11 2 - and therefore are O(1) wrt the size of the kb.
             if node.endnode is None:
                 node.endnode = EndNode(parent=node)
             node.endnode.conditions.append((cond, varmap, rule))
@@ -272,19 +272,19 @@ class KnowledgeBase(ParentNode, ChildNode):
         node : ParentNode = self
         visited_vars = []
         rest_paths : List[Path] = []
-        # AA AR 04 - Algorithmic Analysis - Adding a rule
-        # AA AR 04 - we iterate over the paths that correspond to a condition.
-        # AA AR 04 - This only depends on the complexity of the condition.
-        # AA AR 04 - wrt the size of the kb, this is O(1)
+        # AA AR 04 0 - Algorithmic Analysis - Adding a rule
+        # AA AR 04 1 - we iterate over the paths that correspond to a condition.
+        # AA AR 04 2 - This only depends on the complexity of the condition.
+        # AA AR 04 3 - wrt the size of the kb, this is O(1)
         for i, path in enumerate(paths):
             if path.var:
-                # AA AR 05 - Algorithmic Analysis - Adding a Rule
-                # AA AR 05 - Here we consult a hash table with, at most, 1 less
-                # AA AR 05 - entries than the number of variables in the condition
-                # AA AR 05 - it corrsponds to.
-                # AA AR 05 - So this depends only on the complexity of the
-                # AA AR 05 - condition.
-                # AA AR 05 - wrt the size of the kb, this is O(1)
+                # AA AR 05 0 - Algorithmic Analysis - Adding a Rule
+                # AA AR 05 1 - Here we consult a hash table with, at most, 1 less
+                # AA AR 05 2 - entries than the number of variables in the condition
+                # AA AR 05 3 - it corrsponds to.
+                # AA AR 05 4 - So this depends only on the complexity of the
+                # AA AR 05 5 - condition.
+                # AA AR 05 6 - wrt the size of the kb, this is O(1)
                 var_child = node.var_children.get(path)
                 if var_child is not None:
                     node = var_child
@@ -295,12 +295,12 @@ class KnowledgeBase(ParentNode, ChildNode):
                     rest_paths = paths[i:]
                     break
             else:
-                # AA AR 06 - Algorithmic Analysis - Adding a Rule
-                # AA AR 06 - Here we consult a hash table with a number of
-                # AA AR 06 - children that is proportional to both the complexity of the
-                # AA AR 06 - conditions and to the size of the kb.
-                # AA AR 06 - so wrt the size of the kb, this is at worst
-                # AA AR 06 - O(log(n))
+                # AA AR 06 0 - Algorithmic Analysis - Adding a Rule
+                # AA AR 06 1 - Here we consult a hash table with a number of
+                # AA AR 06 2 - children that is proportional to both the complexity of the
+                # AA AR 06 3 - conditions and to the size of the kb.
+                # AA AR 06 4 - so wrt the size of the kb, this is at worst
+                # AA AR 06 5 - O(log(n))
                 child = node.children.get(path)
                 if child:
                     node = child
@@ -310,15 +310,15 @@ class KnowledgeBase(ParentNode, ChildNode):
         return node, visited_vars, rest_paths
 
     def _create_paths(self, node : ParentNode, paths : List[Path], visited : List[Syntagm]) -> Node:
-        # AA AR 09 - Algorithmic Analysis - Adding a rule
-        # AA AR 09 - we iterate over the paths that correspond to a condition.
-        # AA AR 09 - This only depends on the complexity of the condition.
-        # AA AR 09 - wrt the size of the kb, this is O(1)
+        # AA AR 09 0 - Algorithmic Analysis - Adding a rule
+        # AA AR 09 1 - we iterate over the paths that correspond to a condition.
+        # AA AR 09 2 - This only depends on the complexity of the condition.
+        # AA AR 09 3 - wrt the size of the kb, this is O(1)
         for path in paths:
-            # AA AR 10 - Algorithmic Analysis - Adding a rule
-            # AA AR 10 - the rest of the operations from here on only operate on
-            # AA AR 10 - the information provided in the condition,
-            # AA AR 10 - and therefore are O(1) wrt the size of the kb.
+            # AA AR 10 0 - Algorithmic Analysis - Adding a rule
+            # AA AR 10 1 - the rest of the operations from here on only operate on
+            # AA AR 10 2 - the information provided in the condition,
+            # AA AR 10 3 - and therefore are O(1) wrt the size of the kb.
             next_node = Node(path, path.var, parent=node)
             if path.var:
                 if path.value not in visited:
@@ -338,12 +338,12 @@ class KnowledgeBase(ParentNode, ChildNode):
         This method is the entry to the algorithm that checks for conditions
         that match a new fact being added to the knowledge base. 
         '''
-        # AA FR 01 - Algorithmic Analysis - Checking a Fact with the RuleSet
+        # AA FR 01 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
         logger.debug(f'adding fact "{fact}" to rete')
         paths = fact.get_paths()
         matching = Matching()
-        # AA FR 02 - Algorithmic Analysis - Checking a Fact with the RuleSet
-        # AA FR 02 - We continue the analisis whithin propagate
+        # AA FR 02 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
+        # AA FR 02 1 - We continue the analisis whithin propagate
         self.propagate(paths, matching, first=True)
 
     def add_new_rule(self, act : Activation):
