@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
@@ -45,11 +44,24 @@ class BaseSSNode:
         existing nodes that correpond to its list of paths.
         '''
         parent = self
+        # AA AF 01 - Algorithmic Analysis - Adding a fact to the factset.
+        # AA AF 01 - we iterate over the paths that correspond to a fact.
+        # AA AF 01 - This only depends on the complexity of the facts.
+        # AA AF 01 - wrt the size of the kb, this is O(1)
         for i, path in enumerate(paths):
+            # AA AF 02 - Algorithmic Analysis - Adding a fact to the factset.
+            # AA AF 02 - Here we consult a hash table with a number of
+            # AA AF 02 - children that is proportional to both the complexity of the
+            # AA AF 02 - conditions and to the size of the kb.
+            # AA AF 02 - so wrt the size of the kb, this is at worst
+            # AA AF 02 - O(log(n))
             node = parent.children.get(path)
             if node is None:
                 rest = paths[i:]
                 first = isinstance(self, FactSet)
+                # AA AF 03 - Algorithmic Analysis - Adding a fact to the factset.
+                # AA AF 03 - create_paths only depends on the information
+                # AA AF 03 - whithin the fact being added, and is O(1) wrt size(kb)
                 parent.create_paths(rest, first=first)
                 return
             parent = node
@@ -59,8 +71,8 @@ class BaseSSNode:
         Used while adding new facts, to create the sequence of
         nodes that correpond to its list of paths and did not exist previously.
         '''
-        visited = get_parents(self)
         if paths:
+            visited = get_parents(self)
             path = paths.pop(0)
             for node in visited:
                 if hasattr(node, 'path'):
@@ -72,13 +84,14 @@ class BaseSSNode:
                                   var=path.var,
                                   parent=node)
                 node.children[path] = new_node
-                new_node.create_paths(copy(paths))
+                new_node.create_paths(paths)
 
     def query_paths(self, paths : List[Path], matching : Matching):
         '''
         Match the paths corresponding to a query (possibly containing
         variables) with the paths in the nodes of the fact set.
         '''
+        # AA QF 01 - Algorithmic Analysis - Querying a fact
         if paths:
             path = paths.pop(0)
             syn = path.value
@@ -89,13 +102,31 @@ class BaseSSNode:
                     path = path.change_value(old_syn)
                     paths = [p.change_subpath(path, old_syn) for p in paths]
                 else:
+                    # AA QF 02 - Algorithmic Analysis - Querying a fact
+                    # AA QF 02 - Here we recurse over all children in the hash
+                    # AA QF 02 - table. Using variables in queries will add a linear
+                    # AA QF 02 - dependence on the number of answers.
                     for child in self.children.values():  # type
                         new_path = path.change_value(child.path.value)
                         rest_paths = [p.change_subpath(new_path, syn) for p in paths]
                         new_matching = matching.setitem(syn, child.path.value)
+                        # AA QF 03 - Algorithmic Analysis - Querying a fact
+                        # AA QF 03 - Recurse though child nodes. The cost of each
+                        # AA QF 03 - step is logarithmic wrt the size of the kb, as we've seen
+                        # AA QF 03 - in (AA QF 04), and the depth of recursion reached here
+                        # AA QF 03 - does not depend on the size of the kb, but on the
+                        # AA QF 03 - provided grammar.
                         child.query_paths(rest_paths, new_matching)
+            # AA QF 04 - Algorithmic Analysis - Querying a fact
+            # AA QF 04 - Here we consult a hash table with a number of
+            # AA QF 04 - elements that is proportional to both the complexity of the
+            # AA QF 04 - conditions and to the size of the kb.
+            # AA QF 04 - so wrt the size of the kb, this is at worst
+            # AA QF 04 - O(log(n))
             child = self.children.get(path)
             if child is not None:
+                # AA QF 05 - Algorithmic Analysis - Querying a fact
+                # AA QF 05 - The same as (AA QF 03)
                 child.query_paths(paths, matching)
         else:
             self._response_append(matching)
