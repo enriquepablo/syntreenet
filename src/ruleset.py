@@ -86,6 +86,11 @@ class EndNode(ChildNode, End):
         and the new fact.
         '''
         rete = get_parents(self)[-1]
+        # AA FR 10 - Algorithmic Analysis - Checking a Fact with the RuleSet
+        # AA FR 10 - Here we recurse over all the rules that have the condition
+        # AA FR 10 - that has been matched. This add a linear dependency on the number of
+        # AA FR 10 - consecuences to the complexity of adding a fact with all its
+        # AA FR 10 - consecuences.
         for condition, varmap, rule in self.conditions:
             real_matching = matching.get_real_matching(varmap)
             activation = Activation(rule, real_matching, condition)
@@ -123,24 +128,40 @@ class ParentNode:
             path = paths.pop(0)
             # AA FR 03 - Algorithmic Analysis - Checking a Fact with the RuleSet
             # AA FR 03 - visited contains all the parents of the current node
-            # up to the root node, and can_follow should weed ut most of them;
-            # this is something that depends on the internal complexity of the
-            # conditions.
+            # AA FR 03 - up to the root node, and can_follow should weed ut most of them;
+            # AA FR 03 - this is something that depends on the internal complexity of the
+            # AA FR 03 - conditions.
             for node in visited:
                 if hasattr(node, 'path'):
                     if not path.can_follow(node.path):
                         continue
                 elif not first:
                     continue
+                # AA FR 04 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                # AA FR 04 - Here we consult a hash table. This add a
+                # AA FR 04 - logarithmic dependency on the number of child nodes - on the
+                # AA FR 04 - size of the kb.
                 child = node.children.get(path)
                 if child is not None:
+                    # AA FR 05 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                    # AA FR 05 - Recurse though child nodes. The cost of each
+                    # AA FR 05 - step is logarithmic wrt the size of the kb, as we've seen
+                    # AA FR 05 - above, and the depth of recursion reached here does not
+                    # AA FR 05 - depend on the size of the kb, but on the provided grammar.
                     child.propagate(copy(paths), matching.copy())
                 var : Optional[Syntagm] = matching.getkey(path.value)
                 if var is not None:
                     new_path = path.change_value(var)
+                    # AA FR 06 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                    # AA FR 06 - Here we consult a hash table with very few
+                    # AA FR 06 - elements - at most the one less y than the number of
+                    # AA FR 06 - variables in the conditions it takes part of - so it
+                    # AA FR 06 - depends on the grammar (and should not be a dict).
                     var_child = node.var_children.get(new_path)
                     if var_child is not None:
                         new_paths = [p.change_subpath(new_path, path.value) for p in paths]
+                        # AA FR 07 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                        # AA FR 07 - The same as (AA FR 05)
                         var_child.propagate(new_paths, matching.copy())
                 if node.var_child is not None:
                     child_var = node.var_child.path.value
@@ -148,9 +169,13 @@ class ParentNode:
                     new_matching = matching.setitem(child_var, old_value)
                     new_path = path.change_value(child_var)
                     new_paths = [p.change_subpath(new_path, old_value) for p in paths]
+                    # AA FR 08 - Algorithmic Analysis - Checking a Fact with the RuleSet
+                    # AA FR 08 - The same as (AA FR 05)
                     node.var_child.propagate(new_paths, new_matching)
 
         if self.endnode:
+            # AA FR 09 - Algorithmic Analysis - Checking a Fact with the RuleSet
+            # AA FR 09 - Continue analysis in add_matching
             self.endnode.add_matching(matching)
 
 
@@ -269,17 +294,19 @@ class KnowledgeBase(ParentNode, ChildNode):
                 else:
                     rest_paths = paths[i:]
                     break
-            # AA AR 06 - Algorithmic Analysis - Adding a Rule
-            # AA AR 06 - Here we consult a hash table with a number of
-            # AA AR 06 - children that is proportional to both the complexity of the
-            # AA AR 06 - conditions and to the size of the kb.
-            # AA AR 06 - so wrt the size of the kb, this is at worst
-            # AA AR 06 - O(log(n))
-            elif path in node.children:
-                node = node.children[path]
             else:
-                rest_paths = paths[i:]
-                break
+                # AA AR 06 - Algorithmic Analysis - Adding a Rule
+                # AA AR 06 - Here we consult a hash table with a number of
+                # AA AR 06 - children that is proportional to both the complexity of the
+                # AA AR 06 - conditions and to the size of the kb.
+                # AA AR 06 - so wrt the size of the kb, this is at worst
+                # AA AR 06 - O(log(n))
+                child = node.children.get(path)
+                if child:
+                    node = child
+                else:
+                    rest_paths = paths[i:]
+                    break
         return node, visited_vars, rest_paths
 
     def _create_paths(self, node : ParentNode, paths : List[Path], visited : List[Syntagm]) -> Node:
