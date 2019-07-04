@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
+from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 
@@ -49,11 +49,12 @@ class BaseSSNode:
             node = parent.children.get(path)
             if node is None:
                 rest = paths[i:]
-                parent.create_paths(rest)
+                first = isinstance(self, FactSet)
+                parent.create_paths(rest, first=first)
                 return
             parent = node
 
-    def create_paths(self, paths : List[Path]):
+    def create_paths(self, paths : List[Path], first : bool = False):
         '''
         Used while adding new facts, to create the sequence of
         nodes that correpond to its list of paths and did not exist previously.
@@ -62,13 +63,16 @@ class BaseSSNode:
         if paths:
             path = paths.pop(0)
             for node in visited:
-                if hasattr(node, 'path') and not path.can_follow(node.path):
+                if hasattr(node, 'path'):
+                    if not path.can_follow(node.path):
+                        continue
+                elif not first:
                     continue
                 new_node = SSNode(path=path,
                                   var=path.var,
                                   parent=node)
                 node.children[path] = new_node
-                new_node.create_paths(deepcopy(paths))
+                new_node.create_paths(copy(paths))
 
     def query_paths(self, paths : List[Path], matching : Matching):
         '''

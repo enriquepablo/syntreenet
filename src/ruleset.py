@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
+from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Dict, Union, Tuple, Any, Optional, cast
 
@@ -112,7 +112,7 @@ class ParentNode:
     children : Dict[Path, Node] = field(default_factory=dict)
     endnode : Optional[EndNode] = None
 
-    def propagate(self, paths : List[Path], matching : Matching):
+    def propagate(self, paths : List[Path], matching : Matching, first : bool = False):
         '''
         Find the conditions that the fact represented by the paths in paths
         matches, recursively.
@@ -122,10 +122,13 @@ class ParentNode:
         if paths:
             path = paths.pop(0)
             for node in visited:
-                if hasattr(node, 'path') and not path.can_follow(node.path):
+                if hasattr(node, 'path'):
+                    if not path.can_follow(node.path):
+                        continue
+                elif not first:
                     continue
                 if path in node.children:
-                    node.children[path].propagate(deepcopy(paths), matching.copy())
+                    node.children[path].propagate(copy(paths), matching.copy())
                 var : Optional[Syntagm] = matching.getkey(path.value)
                 if var is not None:
                     new_path = path.change_value(var)
@@ -306,7 +309,7 @@ class KnowledgeBase(ParentNode, ChildNode):
         matching = Matching()
         # AA FR 02 - Algorithmic Analysis - Checking a Fact with the RuleSet
         # AA FR 02 - We continue the analisis whithin propagate
-        self.propagate(paths, matching)
+        self.propagate(paths, matching, first=True)
 
     def add_new_rule(self, act : Activation):
         rule = cast(Rule, act.precedent)

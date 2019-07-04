@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
+from copy import copy
 from dataclasses import dataclass, field
 from abc import ABC
 from typing import List, Tuple, Optional
@@ -226,7 +226,7 @@ class Matching:
         '''
         Return a copy of self
         '''
-        return Matching(deepcopy(self.mapping))
+        return Matching(copy(self.mapping))
 
     def get(self, key : Syntagm) -> Optional[Syntagm]:
         '''

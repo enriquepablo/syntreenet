@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
 #
 # This file is part of the whatever project.
@@ -17,34 +18,39 @@
 # along with any part of the terms project.
 # If not, see <http://www.gnu.org/licenses/>.
 import argparse
-from dataclasses import dataclass
 from random import randrange
 from timeit import timeit
-from ..babel import ont as o
+import clips
 
 
-sets = (o.thing, o.animal, o.mammal, o.primate, o.human)
+sets = ('thing', 'animal', 'mammal', 'primate', 'human')
 
 parser = argparse.ArgumentParser(description='Benchmark on ont.')
 parser.add_argument('-n', dest='n' ,type=int,
                     help='number of sentences to add')
+parser.add_argument('-b', dest='b' ,type=int,
+                    help='batch of facts to run')
 
-@dataclass
 class Benchmark:
-    n : int
+
+    def __init__(self, n, b=1):
+        self.n = n
+        self.b = b
 
     def __call__(self):
+        clips.BuildRule("one", "(is-a ?x1 ?x2) (a-is-a ?x2 ?x3)", "(assert (is-a ?x1 ?x3))", "belogns")
+        clips.BuildRule("two", "(a-is-a ?x1 ?x2) (a-is-a ?x2 ?x3)", "(assert (a-is-a ?x1 ?x3))", "subset")
         l = len(sets)
         for i in range(self.n):
             s = sets[i % l]
-            name = f'{s.name}{i}'
-            word = o.Word(name)
-            sen = o.F(word, o.isa, s)
-            o.kb.tell(sen)
+            name = '%s%d' % (s, i)
+            clips.Assert("(is-a %s %s)" % (name, s))
+            if self.n % self.b == 0:
+                clips.Run()
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    t = timeit(Benchmark(args.n), number=1)
-    print(f'took {t}sec to proccess {o.kb.counter} activations\n'
-          f'    mean for activation : {(t/o.kb.counter)*1000}ms\n'
-          f'    mean for added fact : {(t/args.n)*1000}ms')
+    t = timeit(Benchmark(args.n, args.b), number=1)
+    print('took %f sec to proccess %d facts\n'
+          '    mean for added fact : %f ms' % (t, args.n, (float(t)/args.n)*1000))
+
