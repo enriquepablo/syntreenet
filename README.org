@@ -91,13 +91,13 @@ view of what is this about.
 
 As said, the grammar is pluggable; for the example here I will use a very simple
 grammar, defined in babel.ont, which allows us to produce classifications of
-things: finite domain first order set theories with set inclusion forming a
-DAG. So for example we will be able to have a knowledge base where we say that
-we have a set of things, a set of animals subset of things, etc.; and, if we
-tell the system that "my dog toby" belongs to the set of animals, and we ask it
-whether "my dog toby" belongs to the set of things, it should answer yes.
+things: finite domain first order set theories with set inclusion forming a DAG.
+So for example we will be able to have a knowledge base where we say that we
+have a set of things, a set of animals subset of the set of things, etc.; and,
+if we tell the system that "my dog toby" belongs to the set of animals, and we
+ask it whether "my dog toby" belongs to the set of things, it should answer yes.
 
-With this grammar, we have facts that are triples of words, and words that
+In this grammar, we have facts that are triples of words, and words that
 can be of 2 kinds: predicates and atoms. We have 2 predicates, "belongs to" and
 "subset of", and any number of atoms. Each fact is composed of an atom as
 subject, a predicate as verb, and a second atom as object. For example, we may
@@ -141,16 +141,16 @@ babel.ont (and shortening "belongs to" to "isa", and "subset of" to "is"):
     X3 = Word('X3', var=True)
 
 
-    prem1 = F(X1, isa, X2)
-    prem2 = F(X2, is_, X3)
-    cons1 = F(X1, isa, X3)
+    condition1 = F(X1, isa, X2)
+    condition2 = F(X2, is_, X3)
+    consecuence1 = F(X1, isa, X3)
 
-    rule1 = Rule((prem1, prem2), (cons1,))
+    rule1 = Rule((condition1, condition2), (consecuence1,))
 
-    prem3 = F(X1, is_, X2)
-    cons2 = F(X1, is_, X3)
+    condition3 = F(X1, is_, X2)
+    consecuence2 = F(X1, is_, X3)
 
-    rule2 = Rule((prem3, prem2), (cons2,))
+    rule2 = Rule((condition3, condition2), (consecuence2,))
 
     kb.tell(rule1)
     kb.tell(rule2)
@@ -266,7 +266,7 @@ respect to the number of leafs - it would be logarithmic if all leafs were
 provided in a single hash table.
 
 So the trick is to turn the tests that lead the descent through the branches to
-the leaves into consultations to hash tables; and at the same time keep some
+the leaves into consultations to hash tables; and at the same time to keep some
 internal structure to the hashable objects so that we can play with logical
 variables within said tests.
 
@@ -307,11 +307,11 @@ child node from a hash table. If there are variables, they will match all the
 children of the corresponding parent node, so the cost of a query will be linear
 wrt the number of answers it will find.
 
-+ Adding a fact to the system :: When we add a fact to the system, it is first
-queried from the fact set. If there is a match, the operation is aborted. Then
-it is checked with the rule set. For each of the conditions that match, an
-activation is produced and stored to be processed later. Finally, it is added to
-the fact set.
++ Adding a fact to the system :: When we add a fact to the system (in the form
+of an activation), it is first queried from the fact set. If there is a match,
+the operation is aborted. Then it is checked with the rule set. For each of the
+conditions that match, an activation is produced and stored to be processed
+later. Finally, it is added to the fact set.
 
 + Adding a sentence to the system :: When a rule is added to the system, it is
 simply added to the rules tree. When a fact is added, it is made into an
@@ -323,19 +323,19 @@ the shape of the logic being processed.)
 
 + Processing an activation produced by a fact matching a condition :: If a fact
 matches a condition, there will be an assignment of variables in the condition
-to syntagms in the fact. If the condition is the only one the rule has, the
-consecuences will be added as activations, with any variable replaced with the
-assignment; all variables must be taken care of by the assignment, i.e., any
-variable in the consecuences must happen in the conditions. If the rule has more
-conditions, we create a new rule, substituting the variables in the assignment
-in all remaining conditions and consecuences (in this case there may be
-remaining variables - not all conditions must contain all variables), and add it
-to the rule tree.
+to syntagms in the fact. If the condition is the only one the rule has, its
+consecuences will be added as activations, with any variable replaced according
+to the assignment; all variables must be taken care of in the assignment, i.e.,
+any variable in the consecuences must happen in the conditions. If the rule has
+more conditions, we create a new rule, substituting the variables in the
+assignment in all remaining conditions and consecuences (in this case there may
+be remaining variables - not all conditions must contain all variables), and add
+it to the rule tree.
 
 *** Experimental results.
 
 I have run a few very limited experiments with the benchmarking scripts in the
-scripts submodule, which test both CLIPS and syntreenet with the animal ontology
+scripts subpackage, which test both CLIPS and syntreenet with the animal ontology
 sketched above and adds a number of facts with the form "animal234 isa
 animal", "mammal21 isa mammal", etc. A few notes about these experiments:
 
@@ -344,8 +344,8 @@ animal", "mammal21 isa mammal", etc. A few notes about these experiments:
 
  * We are pitching a very optimized and tested C program against a proof of
    concept in 750 lines of Python. And it shows, the basal performance of CLIPS
-   is an order of magnitude higher. But we are only interested here in the
-   degradation of performance wrt the size of the kb. 
+   is an order and a half of magnitude higher. But we are only interested here
+   in the degradation of performance wrt the size of the kb.
 
  * We are also hitting here a sweet spot for CLIPS, with just 2 rules and just
    2 conditions in each. Due to the different architecture syntreenet does not
@@ -379,8 +379,8 @@ The main requirement for extensions of Syntagm is that they provide __str__,
 __hash__, a boolean method is_var(), and a classmethod new_var(seed), that
 returns a variable that incorporates the seed somehow.
 
-Additionally, they can provide a boolean method can_follow(path1, path2) which
-should tell whether the syntactic element represented by path1 can be
+Additionally, they can provide a boolean static method can_follow(path1, path2)
+which should tell whether the syntactic element represented by path1 can be
 immediately to the right of the syntactic element represented by path2 in a
 fact. So the paths that correspond to some grammar should carry that information
 about said grammar. This is anyway implied by the fact that it must be possible
@@ -400,11 +400,11 @@ from_paths() inverse of the previous:
 It must be noted that although logically a set of tuples should be enough, in
 practice it is much more efficient if get_paths returns the paths with an order
 that corresponds to the order of the corresponding syntactic elements in the
-(linearized) fact, from left to right. At this moment the implementation relies
-on that. In fact I think it is the correct thing to do: that linearization is
+(linearized) fact, from left to right. At this moment *the implementation relies
+on that*. In fact I think it is the correct thing to do: that linearization is
 part of the structure of the facts that can leak to syntreenet, since it is
 universal (or at least we can make it a requirement without loosing anything).
 
-
+** Meta
 
 Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
