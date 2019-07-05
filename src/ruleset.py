@@ -236,7 +236,7 @@ class KnowledgeBase(ParentNode, ChildNode):
         '''
         return self.fset.ask_fact(q)
 
-    def add_rule(self, rule):
+    def _add_rule(self, rule):
         '''
         This method is the entry to the agorithm to add new rules to the knowledge
         base.
@@ -333,7 +333,7 @@ class KnowledgeBase(ParentNode, ChildNode):
                 node = next_node
         return cast(Node, node)
 
-    def add_fact(self, fact : Fact):
+    def _add_fact(self, fact : Fact):
         '''
         This method is the entry to the algorithm that checks for conditions
         that match a new fact being added to the knowledge base. 
@@ -346,7 +346,7 @@ class KnowledgeBase(ParentNode, ChildNode):
         # AA FR 02 1 - We continue the analisis whithin propagate
         self.propagate(paths, matching)
 
-    def add_new_rule(self, act : Activation):
+    def _add_new_rule(self, act : Activation):
         rule = cast(Rule, act.precedent)
         conds = tuple(c.substitute(act.matching) for c in
                 rule.conditions if c != act.condition)
@@ -354,9 +354,9 @@ class KnowledgeBase(ParentNode, ChildNode):
         cons = cast(Tuple[Fact], cons)
         conds = cast(Tuple[Fact], conds)
         new_rule = Rule(conds, cons)
-        self.add_rule(new_rule)
+        self._add_rule(new_rule)
 
-    def add_new_facts(self, act : Activation):
+    def _add_new_facts(self, act : Activation):
         rule = cast(Rule, act.precedent)
         cons = tuple(c.substitute(act.matching) for c in rule.consecuences)
         acts = [Activation(c) for c in cons]
@@ -377,12 +377,12 @@ class KnowledgeBase(ParentNode, ChildNode):
                 if isinstance(s, Fact):
                     if not self.ask(s):
                         logger.info(f'adding fact "{s}"')
-                        self.add_fact(s)
+                        self._add_fact(s)
                         self.fset.add_fact(s)
                 elif isinstance(s, Rule):
                     if len(s.conditions) > 1:
-                        self.add_new_rule(act)
+                        self._add_new_rule(act)
                     else:
-                        self.add_new_facts(act)
+                        self._add_new_facts(act)
 
             self.processing = False

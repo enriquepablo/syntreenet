@@ -172,7 +172,7 @@ class Path:
     def change_value(self, val : Syntagm) -> Path:
         '''
         Return new Path, copy of self, where the value -the last syntagm in the
-        tuple- has been changed for the one provided.
+        tuple- has been changed for the one provided in val.
         '''
         return Path(val, val.is_var(), self.segments[:-1] + (val,))
 
@@ -197,7 +197,8 @@ class Path:
             return self.segments[0].can_be_first(self)
         except KeyError:
             # a rather strange place to impose the constraint that paths cannot
-            # be empty.
+            # be empty. But I don't have __init__ and this is the handiest
+            # alternative :)
             raise PathCannotBeEmpty()
 
     def change_subpath(self, path : Path, old_value : Syntagm) -> Path:
@@ -222,7 +223,6 @@ class Path:
                 new_value = new_segments[-1]
                 return Path(new_value, new_value.is_var(), tuple(new_segments))
         return self
-
 
 
 @dataclass(frozen=True)
