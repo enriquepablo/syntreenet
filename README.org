@@ -367,6 +367,27 @@ new fact for CLIPS, and a leveling out of the cost for syntreenet.
 
 <<PICS>>
 
+*** Reproducing.
+
+I will explain how to reproduce my tests assuming the system python and using
+sudo, if you are a Python expert and you can use some other environment you
+know how to do so. There is a little technical complication here, which is that
+syntreenet needs Python 3, but PyCLIPS, the python bindings for CLIPS that I
+use for the benchmark, needs Python 2. So both benchmarks need to be run in
+different environments. I'll start with a Python 3 environment for syntreenet:
+
+  $ sudo pip install syntreenet
+  $ python -m syntreenet.scripts.benchmark_ont -n 100000
+  
+this would add 100.000 facts to the kb.
+
+Now if you want to run the CLIPS benchmark you are on your own. The package will
+not install in a Python 2 env, so you have to use the sources; the CLIPS
+benchmark is a self contained p2 module, to be executed with PyCLIPS in the
+PYTHONPATH.
+
+  $ python src/scripts/benchmark_ont_clips.py -n 100000 -b 1
+
 ** Providing grammars
 
 The elements to build grammars are basically 2 classes that have to be
