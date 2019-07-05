@@ -46,11 +46,21 @@ class Syntagm(ABC):
         Whether the syntagm is a variable.
         '''
 
-    def can_follow(self, snd : Path, fst : Path) -> bool:
+    @staticmethod
+    def can_follow(snd : Path, fst : Path) -> bool:
         '''
         whether the 2 paths can represent contiguous syntactic elements in a
         fact, with fst to the left of snd.
         '''
+        return True
+
+    @staticmethod
+    def can_be_first(path : Path) -> bool:
+        '''
+        whether the 2 paths can represent contiguous syntactic elements in a
+        fact, with fst to the left of snd.
+        '''
+        return True
 
 
 @dataclass(frozen=True)
@@ -128,6 +138,9 @@ class Fact(ABC):
         return varmap.invert(), new_paths
 
 
+class PathCannotBeEmpty(Exception): pass
+
+
 @dataclass(frozen=True)
 class Path:
     '''
@@ -168,9 +181,24 @@ class Path:
         Can the syntactic element represented by self occur immediatelly to the
         right of the one represented by base?
         '''
-        if len(self.segments) == 0:
-            return False  # ???
-        return self.segments[0].can_follow(self, base)
+        try:
+            return self.segments[0].can_follow(self, base)
+        except KeyError:
+            # a rather strange place to impose the constraint that paths cannot
+            # be empty.
+            raise PathCannotBeEmpty()
+
+    def can_be_first(self) -> bool:
+        '''
+        Can the syntactic element represented by self occur as the first
+        element in a fact?
+        '''
+        try:
+            return self.segments[0].can_be_first(self)
+        except KeyError:
+            # a rather strange place to impose the constraint that paths cannot
+            # be empty.
+            raise PathCannotBeEmpty()
 
     def change_subpath(self, path : Path, old_value : Syntagm) -> Path:
         '''

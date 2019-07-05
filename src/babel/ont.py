@@ -25,6 +25,10 @@ from ..ruleset import Rule, KnowledgeBase
 
 @dataclass(frozen=True, order=True)
 class Word(Syntagm):
+    '''
+    The syntagms in this grammar are words, with no internal structure - just a
+    name.
+    '''
     name : str
     var : bool = False
 
@@ -38,13 +42,24 @@ class Word(Syntagm):
     def new_var(cls, seed):
         return Word(f'__X{seed}', True)
 
-    def can_follow(self, snd : Path, fst : Path) -> bool:
+    @staticmethod
+    def can_follow(snd : Path, fst : Path) -> bool:
         if fst.segments[0] == _subj and snd.segments[0] == _pred:
             return True
         if fst.segments[0] == _pred and snd.segments[0] == _obj:
             return True
         return False
 
+    @staticmethod
+    def can_be_first(path : Path) -> bool:
+        if path.segments[0] == _subj:
+            return True
+        return False
+
+
+# Here we define 3 special words, with purely syntactic (operational) meaning;
+# we only use them to construct the paths that correspond to the facts of this
+# grammar, but we do not use them in the actual facts.
 
 _pred = Word('__pred')
 _subj = Word('__subj')
@@ -52,7 +67,16 @@ _obj = Word('__obj')
 
 @dataclass(frozen=True)
 class Pred(Word):
-    pass
+    '''
+    preds (from predicates) are just words, specially designated because they
+    cannot be a variable.
+    '''
+    def is_var(self):
+        return False
+
+# We have just 2 preds, which we predefine, since we not ony want to offer a
+# grammar but also the logic that gives form to its meaning, and we need the
+# predicates in the rules that provide the logic.
 
 is_ = Pred('is')
 isa = Pred('isa')
@@ -60,6 +84,11 @@ isa = Pred('isa')
 
 @dataclass(frozen=True)
 class F(Fact):
+    '''
+    A fact in this grammar has a fixed form, with 3 ordered elements: any
+    non-pred word can serve as subject, any pred word can serve as
+    predicate, and again any non-pred word can serve as object.
+    '''
     subj : Word
     pred : Pred
     obj : Word
@@ -88,6 +117,8 @@ class F(Fact):
                 obj = path.value
         return cls(subj, pred, obj)
 
+# We now impose a logic on this grammar, using duoligno
+
 
 kb = KnowledgeBase()
 
@@ -110,6 +141,8 @@ rule2 = Rule((prem3, prem2), (cons2,))
 
 kb.tell(rule1)
 kb.tell(rule2)
+
+# And we end up with an example of using the module:
 
 thing = Word('thing')
 animal = Word('animal')

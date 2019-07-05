@@ -117,7 +117,7 @@ class ParentNode:
     children : Dict[Path, Node] = field(default_factory=dict)
     endnode : Optional[EndNode] = None
 
-    def propagate(self, paths : List[Path], matching : Matching, first : bool = False):
+    def propagate(self, paths : List[Path], matching : Matching):
         '''
         Find the conditions that the fact represented by the paths in paths
         matches, recursively.
@@ -135,7 +135,7 @@ class ParentNode:
                 if hasattr(node, 'path'):
                     if not path.can_follow(node.path):
                         continue
-                elif not first:
+                elif not path.can_be_first():
                     continue
                 # AA FR 04 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
                 # AA FR 04 1 - Here we consult a hash table. This add a
@@ -344,7 +344,7 @@ class KnowledgeBase(ParentNode, ChildNode):
         matching = Matching()
         # AA FR 02 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
         # AA FR 02 1 - We continue the analisis whithin propagate
-        self.propagate(paths, matching, first=True)
+        self.propagate(paths, matching)
 
     def add_new_rule(self, act : Activation):
         rule = cast(Rule, act.precedent)
