@@ -1,5 +1,5 @@
 
-* duoligno
+* syntreenet
 
 A library to develop production rule systems with match cost logarithmic in the
 size of the knowledge base (rules + facts).
@@ -24,7 +24,7 @@ call WMEs (working memory elements).
 
 *** Facts and Syntagms
 
-With duoligno, the grammar for the facts (and thus for the conditions and
+With syntreenet, the grammar for the facts (and thus for the conditions and
 consecuences) can (has to) be plugged in. The tools to define grammars
 offered by the library are custom, so that they do not adhere to any
 standard or convention, and are fairly free. Basically any grammar whose
@@ -44,13 +44,13 @@ sentences that the grammar produces can be provided with 2 functions that are
 inverse, one that takes any fact and results in a set of tuples of syntagms,
 and one that takes a set of tuples of syntagms and returns the corresponding
 fact (or warns about the set not corresponding to any well formed fact), this
-grammar can be plugged in to duoligno. This allows us to abstract away the
+grammar can be plugged in to syntreenet. This allows us to abstract away the
 library from grammatical concerns. "Whatever your grammar is, provide me your
 productions as sets of hashable tuples of syntagms; now I can use those to make
 hash tables of nodes". Or, for short, "give me your paths, and I'll use them in
 my hash tables".
 
-I want to stress this: duoligno knows nothing about syntax. Facts are a black box
+I want to stress this: syntreenet knows nothing about syntax. Facts are a black box
 with whatever internal structure that is appropriate for their universe of discourse.
 DuoLigno never composes a fact. DuoLigno only knows about ordered sets of tuples of
 hashable objects. It can take any (completely opaque) thing as long as it has methods
@@ -124,11 +124,11 @@ subset of thing" and that "susan belongs to animal", etc.
 
 *** Implementation
 
-So, this is how we'd do it with duoligno, using the grammar file provided in
+So, this is how we'd do it with syntreenet, using the grammar file provided in
 babel.ont (and shortening "belongs to" to "isa", and "subset of" to "is"):
 
-    from duoligno.ruleset import Rule, KnowledgeBase
-    from duoligno.babel.ont import Word, F, isa, is_
+    from syntreenet.ruleset import Rule, KnowledgeBase
+    from syntreenet.babel.ont import Word, F, isa, is_
 
     kb = KnowledgeBase()
 
@@ -331,7 +331,7 @@ to the rule tree.
 *** Experimental results.
 
 I have run a few very limited experiments with the benchmarking scripts in the
-scripts submodule, which test both CLIPS and duoligno with the animal ontology
+scripts submodule, which test both CLIPS and syntreenet with the animal ontology
 sketched above and adds a number of facts with the form "animal234 isa
 animal", "mammal21 isa mammal", etc. A few notes about these experiments:
 
@@ -344,7 +344,7 @@ animal", "mammal21 isa mammal", etc. A few notes about these experiments:
    degradation of performance wrt the size of the kb. 
 
  * We are also hitting here a sweet spot for CLIPS, with just 2 rules and just
-   2 conditions in each. Due to the different architecture duoligno does not
+   2 conditions in each. Due to the different architecture syntreenet does not
    share this sweet spot (it should perform the same with many more rules,
    since in fact in all the tests it ends up with 1000...s of rules).
 
@@ -359,7 +359,7 @@ and 1_000_000 facts, each of which has a mean of about 10 consecuences, and I
 have calculated the mean of 6 runs for each point,
 which is what is plotted. Very clearly the results are not conclusive, however,
 a trend can be seen, where there is a steady increase in the cost of adding a
-new fact for CLIPS, and a leveling out of the cost for duoligno.
+new fact for CLIPS, and a leveling out of the cost for syntreenet.
 
 <<PICS>>
 
@@ -398,5 +398,9 @@ practice it is much more efficient if get_paths returns the paths with an order
 that corresponds to the order of the corresponding syntactic elements in the
 (linearized) fact, from left to right. At this moment the implementation relies
 on that. In fact I think it is the correct thing to do: that linearization is
-part of the structure of the facts that can leak to duolingo, since it is
+part of the structure of the facts that can leak to syntreenet, since it is
 universal (or at least we can make it a requirement without loosing anything).
+
+
+
+Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
