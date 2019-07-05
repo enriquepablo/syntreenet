@@ -54,7 +54,7 @@ class BaseSSNode:
             # AA AF 02 2 - children that is proportional to both the complexity of the
             # AA AF 02 3 - conditions and to the size of the kb.
             # AA AF 02 4 - so wrt the size of the kb, this is at worst
-            # AA AF 02 5 - O(log(n))
+            # AA AF 02 5 - O(log n)
             node = parent.children.get(path)
             if node is None:
                 rest = paths[i:]
@@ -121,7 +121,7 @@ class BaseSSNode:
             # AA QF 04 2 - elements that is proportional to both the complexity of the
             # AA QF 04 3 - conditions and to the size of the kb.
             # AA QF 04 4 - so wrt the size of the kb, this is at worst
-            # AA QF 04 5 - O(log(n))
+            # AA QF 04 5 - O(log n)
             child = self.children.get(path)
             if child is not None:
                 # AA QF 05 0 - Algorithmic Analysis - Querying a fact

@@ -300,7 +300,7 @@ class KnowledgeBase(ParentNode, ChildNode):
                 # AA AR 06 2 - children that is proportional to both the complexity of the
                 # AA AR 06 3 - conditions and to the size of the kb.
                 # AA AR 06 4 - so wrt the size of the kb, this is at worst
-                # AA AR 06 5 - O(log(n))
+                # AA AR 06 5 - O(log n)
                 child = node.children.get(path)
                 if child:
                     node = child

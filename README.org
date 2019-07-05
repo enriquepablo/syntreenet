@@ -2,7 +2,7 @@
 * syntreenet
 
 A library to develop production rule systems with match cost logarithmic in the
-size of the knowledge base (rules + facts).
+size of the knowledge base (rules + facts in working memory).
 
 ** Basic concepts and terminology.
    
@@ -17,24 +17,24 @@ and derivatives (among which this present work might be placed).
 The terminology I will use here is probably not the most common, but I hope it
 is not uncommon enough to be original. I will speak of rules where others speak
 of productions; rules that can have any number of conditions and consecuences
-(consecuences rather than actions, to stress the fact that the only actions
-are assertions), and which can contain logical variables,
-scoped to the rules in which they appear. I will call facts to what some people
-call WMEs (working memory elements). 
+(consecuences rather than actions, to stress the fact that the only actions are
+assertions), and which can contain universally quantified logical variables,
+scoped to the rules in which they appear.
 
 *** Facts and Syntagms
 
+I will call facts to what some people call WMEs (working memory elements).
+
 With syntreenet, the grammar for the facts (and thus for the conditions and
-consecuences) can (has to) be plugged in. The tools to define grammars
+consecuences) has to be plugged in. The tools to define grammars
 offered by the library are custom, so that they do not adhere to any
 standard or convention, and are fairly free. Basically any grammar whose
 productions (facts) can be represented as trees can be plugged in (but see
-the next paragraph for a clarification). This grammar is provided in
+the next paragraph for a clarification). These grammars are provided in
 the form of facts and syntagms - which are defined in
 whatever ad-hoc manner. The only basic requirements for syntagms is that
 they must be able to tell whether they represent a logical variable or not, and that
 each must have a unique string representation.
-
 
 Since a fact can always be represented as a tree, it means that it can also be
 represented as a set of tuples, each tuple being the path from the root to a
@@ -52,18 +52,18 @@ my hash tables".
 
 I want to stress this: syntreenet knows nothing about syntax. Facts are a black box
 with whatever internal structure that is appropriate for their universe of discourse.
-DuoLigno never composes a fact. DuoLigno only knows about ordered sets of tuples of
+syntreenet never composes a fact. syntreenet only knows about ordered sets of tuples of
 hashable objects. It can take any (completely opaque) thing as long as it has methods
 get_paths and from_paths, and it tries to understand nothing about the sequences of
-syntagms in the paths, other that they can contain variables, with which it plays. 
+syntagms in the paths, other than that they can contain variables, with which it plays. 
 
 *** Sentences
 
-A final conceptual element is that facts and rules are, both in the way they
-are represented in the network, and in the sense of their typical numbers, very
-similar, and so we use the term sentence to refer to both facts and rules. A
-knowedge base is, then, a set of sentences, to which we can add new sentences,
-or query for facts.
+A final conceptual element is that facts and rules are in syntreenet, both in
+the way they are represented in the network, and in the sense of their typical
+numbers, very similar, and so we use the term sentence to refer to both facts
+and rules. A knowedge base is, then, a set of sentences, to which we can add new
+sentences, or query for facts.
 
 ** Installation and usage.
 
@@ -77,6 +77,10 @@ in production in any way.
 Use pip. The package has no dependencies outside Python's standard library. It
 is a very small package (~750loc according to SLOCCount) moderately documented
 in the sources, just import from it.
+
+  $ pip install syntreenet
+  $ python
+  >>> import syntreenet
 
 ** An example usage.
 
