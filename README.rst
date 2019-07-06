@@ -1,18 +1,23 @@
+===========
+syntreenet
+===========
 
-* syntreenet
+syntreenet_ is a library to develop `production rule systems`_ with match cost
+logarithmic in the size of the knowledge base (rules + facts in working
+memory).
 
-A library to develop production rule systems with match cost logarithmic in the
-size of the knowledge base (rules + facts in working memory).
-
-** Basic concepts and terminology.
+Basic concepts and terminology
+++++++++++++++++++++++++++++++
    
-*** Production system
+Production system
+-----------------
 
 Here I talk about rule production systems, with the kind of functionality
-offered by e.g. CLIPS or Jess, i.e., the kind provided by the RETE algorithm
-and derivatives (among which this present work might be placed).
+offered by e.g. CLIPS_ or Jess_, i.e., the kind provided by the `RETE
+algorithm`_ and derivatives (among which this present work might be placed).
 
-*** Rules
+Rules
+-----
 
 The terminology I will use here is probably not the most common, but I hope it
 is not uncommon enough to be original. I will speak of rules where others speak
@@ -21,20 +26,21 @@ of productions; rules that can have any number of conditions and consecuences
 assertions), and which can contain universally quantified logical variables,
 scoped to the rules in which they appear.
 
-*** Facts and Syntagms
+Facts and Syntagms
+------------------
 
 I will call facts to what some people call WMEs (working memory elements).
 
 With syntreenet, the grammar for the facts (and thus for the conditions and
-consecuences) has to be plugged in. The tools to define grammars
-offered by the library are custom, so that they do not adhere to any
-standard or convention, and are fairly free. Basically any grammar whose
-productions (facts) can be represented as trees can be plugged in (but see
-the next paragraph for a clarification). These grammars are provided in
-the form of facts and syntagms - which are defined in
-whatever ad-hoc manner. The only basic requirements for syntagms is that
-they must be able to tell whether they represent a logical variable or not, and that
-each must have a unique string representation.
+consecuences) has to be plugged in. The tools to define grammars offered by
+the library are custom, so that they do not adhere to any standard or
+convention, and are fairly free. Basically any grammar whose productions
+(facts) can be represented as trees can be plugged in (but see the next
+paragraph for a clarification). These grammars are provided in the form
+of facts and syntagms - which are defined in whatever ad-hoc manner. The
+only basic requirements for syntagms is that they must be able to tell
+whether they represent a logical variable or not, and that each must have
+a unique string representation.
 
 Since a fact can always be represented as a tree, it means that it can also be
 represented as a set of tuples, each tuple being the path from the root to a
@@ -50,22 +56,25 @@ productions as sets of hashable tuples of syntagms; now I can use those to make
 hash tables of nodes". Or, for short, "give me your paths, and I'll use them in
 my hash tables".
 
-I want to stress this: syntreenet knows nothing about syntax. Facts are a black box
-with whatever internal structure that is appropriate for their universe of discourse.
-syntreenet never composes a fact. syntreenet only knows about ordered sets of tuples of
-hashable objects. It can take any (completely opaque) thing as long as it has methods
-get_paths and from_paths, and it tries to understand nothing about the sequences of
-syntagms in the paths, other than that they can contain variables, with which it plays. 
+I want to stress this: syntreenet knows nothing about syntax. Facts are a black
+box with whatever internal structure that is appropriate for their universe of
+discourse.  syntreenet never composes a fact. syntreenet only knows about
+ordered sets of tuples of hashable objects. It can take any (completely opaque)
+thing as long as it has methods get_paths and from_paths, and it tries to
+understand nothing about the sequences of syntagms in the paths, other than
+that they can contain variables, with which it plays. 
 
-*** Sentences
+Sentences
+---------
 
-A final conceptual element is that facts and rules are in syntreenet, both in
+A final conceptual element is that in syntreenet facts and rules are, both in
 the way they are represented in the network, and in the sense of their typical
 numbers, very similar, and so we use the term sentence to refer to both facts
 and rules. A knowedge base is, then, a set of sentences, to which we can add new
 sentences, or query for facts.
 
-** Installation and usage.
+Installation and usage
+++++++++++++++++++++++
 
 This is not even alpha software; this is a proof of concept, meant to showcase
 the proposed algorithms and data structures, and written for clarity and
@@ -74,20 +83,24 @@ conciseness rather than performance or any other concern.
 It may be useful for research or for toy projects, but is not meant to be used
 in production in any way.
 
-Use pip. The package has no dependencies outside Python's standard library. It
+Use pip. The package has no dependencies outside Python_'s standard library. It
 is a very small package (~750loc according to SLOCCount) moderately documented
 in the sources, just import from it.
+
+.. code:: bash
 
   $ pip install syntreenet
   $ python
   >>> import syntreenet
 
-** An example usage.
+An example usage
+++++++++++++++++
 
 I will continue here with an example of using the software, to give a practical
 view of what is this about.
    
-*** Specification
+Specification
+-------------
 
 As said, the grammar is pluggable; for the example here I will use a very simple
 grammar, defined in babel.ont, which allows us to produce classifications of
@@ -103,12 +116,16 @@ can be of 2 kinds: predicates and atoms. We have 2 predicates, "belongs to" and
 subject, a predicate as verb, and a second atom as object. For example, we may
 have as facts:
 
+.. code::
+
   animal subset of thing.
   primate subset of animal.
   human subset of primate.
   susan belongs to human.
 
 To impose a finite domain set theory on this grammar, we can add rules:
+
+.. code::
 
   X1 belongs to X2;
   X2 subset of X3
@@ -126,10 +143,14 @@ simple example).
 With these rules and the previous facts, we would also have that "human
 subset of thing" and that "susan belongs to animal", etc.
 
-*** Implementation
+Implementation
+--------------
 
-So, this is how we'd do it with syntreenet, using the grammar file provided in
-babel.ont (and shortening "belongs to" to "isa", and "subset of" to "is"):
+So, this is how we'd do it with syntreenet_, using the grammar file provided in
+syntreenet.babel.ont_ (and shortening "belongs to" to ``isa``, and "subset of" to
+``is_``):
+
+.. code:: python
 
     from syntreenet.ruleset import Rule, KnowledgeBase
     from syntreenet.babel.ont import Word, F, isa, is_
@@ -175,6 +196,8 @@ babel.ont (and shortening "belongs to" to "isa", and "subset of" to "is"):
 The output of the last expression should be True.
 
 The logs produced by running the above code are:
+
+.. code::
 
     adding rule "X1 isa X2; X2 is X3 -> X1 isa X3"
     adding rule "X1 is X2; X2 is X3 -> X1 is X3"
@@ -229,9 +252,10 @@ The logs produced by running the above code are:
     adding rule "animal is X3 -> susan isa X3"
     adding rule "thing is X3 -> susan isa X3"
 
-** Algorithmic analysis:
+Algorithmic analysis
+++++++++++++++++++++
 
-In his Thesis, "Production Matching for Large Learning Systems" (1995),
+In `his Thesis`_, "Production Matching for Large Learning Systems" (1995),
 Robert B. Doorenbos says that:
 
    Our analysis asks under what circumstances efficient matching can be
@@ -249,7 +273,8 @@ library is just around 650 loc (as measured by SLOCCount), this detailed
 analysis is not hard to follow. This claim is also tentatively supported by
 some experimental evidence, which I'll provide further below.
 
-*** A bird's view
+A bird's view
+-------------
 
 There are 2 tree structures involved in this algorithm: one in which each leaf
 represents a condition in some rule(s) (the rules tree), and one in which each
@@ -276,79 +301,101 @@ is just a proof of concept: we are dealing here with many fat Python lists
 5 million facts + rules were taking about 3 GB in my laptop, and took
 about 160s to process.
 
-*** Specific procedures
+Specific procedures
+-------------------
 
-+ Adding a rule to the rules tree :: We process each condition sequentially.
-Each condition will correspond to a leaf in the rules tree, that may or may not
-already exist. So the rule tree is searched for the condition. If not found,
-from the node that is furthest from the root and corresponds to (part of) the
-condition, we add the missing nodes to reach the desired leaf. In the leaf we
-will reference the needed information to produce activations when the condition
-is matched by a fact, basically the rule it belogs to (so each leaf will have a
-set of rules, all of which have the corresponding condition).
+**Adding a rule to the rules tree**
+   We process each condition sequentially.  Each condition will correspond to a
+   leaf in the rules tree, that may or may not already exist. So the rule tree
+   is searched for the condition. If not found, from the node that is furthest
+   from the root and corresponds to (part of) the condition, we add the missing
+   nodes to reach the desired leaf. In the leaf we will reference the needed
+   information to produce activations when the condition is matched by a fact,
+   basically the rule it belogs to (so each leaf will have a set of rules, all
+   of which have the corresponding condition).
 
-+ Checking a fact in the rules tree :: Whenever a new fact is added to the kb it
-is checked with the rules tree to see whether it entails any consecuences. We use
-the paths corresponding to the fact to descend through the nodes in the tree.
-Whenever a matched node has children that are varibles, there will be an
-assignment of the variables in the condition, and the nodes will be descended -
-unconditinally. Unless, of course, the variable is repeated, in which case it will
-be constrained.
+   An analysis of the code path for this can be found in the
+   syntreenet.ruleset_ module, in comments marked with "AA AR"
 
-+ Adding a fact to the facts tree :: This follows the same steps as adding a
-condition to the rule tree. However, whereas conditions can contain variables,
-facts cannot, and since variables are reflected in the structure of the tree,
-the facts tree is simpler, and adding a new fact also so.
+**Checking a fact in the rules tree**
+   Whenever a new fact is added to the kb it is checked with the rules tree to
+   see whether it entails any consecuences. We use the paths corresponding to
+   the fact to descend through the nodes in the tree.  Whenever a matched node
+   has children that are varibles, there will be an assignment of the variables
+   in the condition, and the nodes will be descended - unconditinally. Unless,
+   of course, the variable is repeated, in which case it will be constrained.
 
-+ Querying the facts tree :: We query the facts tree with facts that can contain
-variables, similar to conditions in rules. If there are no variables, there is
-just one possible leaf as target, and we descend through the tree choosing each
-child node from a hash table. If there are variables, they will match all the
-children of the corresponding parent node, so the cost of a query will be linear
-wrt the number of answers it will find.
+   An analysis of the code path for this can be found in the
+   syntreenet.ruleset_ module, in comments marked with "AA FR"
 
-+ Adding a fact to the system :: When we add a fact to the system (in the form
-of an activation), it is first queried from the fact set. If there is a match,
-the operation is aborted. Then it is checked with the rule set. For each of the
-conditions that match, an activation is produced and stored to be processed
-later. Finally, it is added to the fact set.
+**Adding a fact to the facts tree**
+   This follows the same steps as adding a condition to the rule tree. However,
+   whereas conditions can contain variables, facts cannot, and since variables
+   are reflected in the structure of the tree, the facts tree is simpler, and
+   adding a new fact also so.
 
-+ Adding a sentence to the system :: When a rule is added to the system, it is
-simply added to the rules tree. When a fact is added, it is made into an
-activation, and processing of activations starts; and processing of the fact can
-result in new activations, which will be processed sequentially (this provides a
-linear dependence on the amount of consecuences that any given fact will have,
-which has a very weak dependence on the size of the kb, and a dominant one on
-the shape of the logic being processed.)
+   An analysis of the code path for this can be found in the
+   syntreenet.factset_ module, in comments marked with "AA AF"
 
-+ Processing an activation produced by a fact matching a condition :: If a fact
-matches a condition, there will be an assignment of variables in the condition
-to syntagms in the fact. If the condition is the only one the rule has, its
-consecuences will be added as activations, with any variable replaced according
-to the assignment; all variables must be taken care of in the assignment, i.e.,
-any variable in the consecuences must happen in the conditions. If the rule has
-more conditions, we create a new rule, substituting the variables in the
-assignment in all remaining conditions and consecuences (in this case there may
-be remaining variables - not all conditions must contain all variables), and add
-it to the rule tree.
+**Querying the facts tree**
+   We query the facts tree with facts that can contain variables, similar to
+   conditions in rules. If there are no variables, there is just one possible
+   leaf as target, and we descend through the tree choosing each child node
+   from a hash table. If there are variables, they will match all the children
+   of the corresponding parent node, so the cost of a query will be linear wrt
+   the number of answers it will find.
 
-*** Experimental results.
+   An analysis of the code path for this can be found in the
+   syntreenet.factset_ module, in comments marked with "AA QF"
+
+**Adding a fact to the system**
+   When we add a fact to the system (in the form of an activation), it is first
+   queried from the fact set. If there is a match, the operation is aborted.
+   Then it is checked with the rule set. For each of the conditions that match,
+   an activation is produced and stored to be processed later. Finally, it is
+   added to the fact set.
+
+**Adding a sentence to the system**
+   When a rule is added to the system, it is simply added to the rules tree.
+   When a fact is added, it is made into an activation, and processing of
+   activations starts; and processing of the fact can result in new
+   activations, which will be processed sequentially (this provides a linear
+   dependence on the amount of consecuences that any given fact will have,
+   which has a very weak dependence on the size of the kb, and a dominant one
+   on the shape of the logic being processed.)
+
+**Processing an activation produced by a fact matching a condition**
+   If a fact matches a condition, there will be an assignment of variables in
+   the condition to syntagms in the fact. If the condition is the only one the
+   rule has, its consecuences will be added as activations, with any variable
+   replaced according to the assignment; all variables must be taken care of in
+   the assignment, i.e., any variable in the consecuences must happen in the
+   conditions. If the rule has more conditions, we create a new rule,
+   substituting the variables in the assignment in all remaining conditions and
+   consecuences (in this case there may be remaining variables - not all
+   conditions must contain all variables), and add it to the rule tree.
+
+Experimental results
+--------------------
 
 I have run a few very limited experiments with the benchmarking scripts in the
-scripts subpackage, which test both CLIPS and syntreenet with the animal ontology
-sketched above and adds a number of facts with the form "animal234 isa
+scripts subpackage, which test both CLIPS_ and syntreenet_ with the animal
+ontology sketched above and adds a number of facts with the form "animal234 isa
 animal", "mammal21 isa mammal", etc. A few notes about these experiments:
 
  * I have not extracted any statistics for lack of data points; these results
    are not meant as evidence, but as suggestive.
+   
+ * I have just tested a very simple logic, more complex ontologies would be
+   needed.
 
  * We are pitching a very optimized and tested C program against a proof of
    concept in 750 lines of Python. And it shows, the basal performance of CLIPS
-   is an order and a half of magnitude higher. But we are only interested here
+   is more than an order of magnitude higher. But we are only interested here
    in the degradation of performance wrt the size of the kb.
 
  * We are also hitting here a sweet spot for CLIPS, with just 2 rules and just
-   2 conditions in each. Due to the different architecture syntreenet does not
+   2 conditions in each. Due to the different architecture, syntreenet does not
    share this sweet spot (it should perform the same with many more rules,
    since in fact in all the tests it ends up with 1000...s of rules).
 
@@ -365,67 +412,94 @@ which is what is plotted. Very clearly the results are not conclusive, however,
 a trend can be seen, where there is a steady increase in the cost of adding a
 new fact for CLIPS, and a leveling out of the cost for syntreenet.
 
-<<PICS>>
+.. image:: img/clips.png
 
-*** Reproducing.
+.. image:: img/syntreenet.png
+
+Once I have more meaningful numbers I'll post them here. My next objective in
+this sense is to develop a more complex grammar for syntreenet.
+
+Reproducing
+-----------
 
 I will explain how to reproduce my tests assuming the system python and using
-sudo, if you are a Python expert and you can use some other environment you
+sudo, if you are a Python_ expert and you can use some other environment you
 know how to do so. There is a little technical complication here, which is that
-syntreenet needs Python 3, but PyCLIPS, the python bindings for CLIPS that I
+syntreenet_ needs Python 3, but PyCLIPS_, the python bindings for CLIPS_ that I
 use for the benchmark, needs Python 2. So both benchmarks need to be run in
 different environments. I'll start with a Python 3 environment for syntreenet:
+
+.. code:: bash
 
   $ sudo pip install syntreenet
   $ python -m syntreenet.scripts.benchmark_ont -n 100000
   
 this would add 100.000 facts to the kb.
 
-Now if you want to run the CLIPS benchmark you are on your own. The package will
-not install in a Python 2 env, so you have to use the sources; the CLIPS
-benchmark is a self contained p2 module, to be executed with PyCLIPS in the
-PYTHONPATH.
+Now if you want to run the CLIPS_ benchmark you are on your own. The package will
+not install in a Python 2 env, so you have to use the sources; the CLIPS_
+benchmark is a self contained python 2 module, to be executed with PyCLIPS_ in the
+``PYTHONPATH``.
+
+.. code:: bash
 
   $ python src/scripts/benchmark_ont_clips.py -n 100000 -b 1
 
-** Providing grammars
+Providing grammars
+++++++++++++++++++
 
 The elements to build grammars are basically 2 classes that have to be
-extended, Fact and Syntagm. Each syntagm must have a unique string
+extended, ``Fact`` and ``Syntagm``. Each syntagm must have a unique string
 representation, must be hashable, and must be capable of saying whether it is a
 variable or not. Syntagms can have any internal structure as wanted, and can be
 combined in any way to form facts. 
 
-The main requirement for extensions of Syntagm is that they provide __str__,
-__hash__, a boolean method is_var(), and a classmethod new_var(seed), that
-returns a variable that incorporates the seed somehow.
+The main requirement for extensions of ``Syntagm`` is that they provide
+``__str__``, ``__hash__``, a boolean method ``is_var()``, and a classmethod
+``new_var(seed)``, that returns a variable that incorporates the seed somehow.
 
-Additionally, they can provide a boolean static method can_follow(path1, path2)
-which should tell whether the syntactic element represented by path1 can be
-immediately to the right of the syntactic element represented by path2 in a
+Additionally, they can provide a boolean static method ``can_follow(path1, path2)``
+which should tell whether the syntactic element represented by ``path1`` can be
+immediately to the right of the syntactic element represented by ``path2`` in a
 fact. So the paths that correspond to some grammar should carry that information
 about said grammar. This is anyway implied by the fact that it must be possible
 to reconstruct a fact from a *set* (unordered) of paths.
 
-This can_follow method is optional. The default implementation always returns
+This ``can_follow`` method is optional. The default implementation always returns
 True. This means that we will build trees of facts and rules where there will be
 many leafs that do not correspond to any well formed fact or condition. There will
 be waste of space and cycles, but nothing will break.
 
-Extensions of Fact must implement a get_paths() method that returns a
+Extensions of ``Fact`` must implement a ``get_paths()`` method that returns a
 representation of the fact as a set of tuples of syntagms, and a classmethod
-from_paths() inverse of the previous:
+``from_paths()`` inverse of the previous:
+
+.. code:: python
 
     x.__class__.from_paths(x.get_paths()) == x
 
 It must be noted that although logically a set of tuples should be enough, in
-practice it is much more efficient if get_paths returns the paths with an order
+practice it is much more efficient if ``get_paths`` returns the paths with an order
 that corresponds to the order of the corresponding syntactic elements in the
 (linearized) fact, from left to right. At this moment *the implementation relies
 on that*. In fact I think it is the correct thing to do: that linearization is
-part of the structure of the facts that can leak to syntreenet, since it is
+part of the structure of the facts that can leak to syntreenet_, since it is
 universal (or at least we can make it a requirement without loosing anything).
 
-** Meta
+Meta
+++++
 
 Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
+
+
+.. _syntreenet: http://syntree.net/
+.. _`production rule systems`: https://en.wikipedia.org/wiki/Production_system_%28computer_science%29
+.. _CLIPS: http://www.clipsrules.net/
+.. _Jess: https://jessrules.com/
+.. _`RETE algorithm`: https://en.wikipedia.org/wiki/Rete_algorithm
+.. _Python: http://www.python.org/
+.. _`his Thesis`: http://reports-archive.adm.cs.cmu.edu/anon/1995/CMU-CS-95-113.pdf
+.. _syntreenet.babel.ont: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/babel/ont.py
+.. _syntreenet.ruleset: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/ruleset.py
+.. _syntreenet.factset: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/factset.py
+.. _PyCLIPS: https://pypi.org/project/pyclips/
