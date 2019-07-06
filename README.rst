@@ -1,7 +1,4 @@
 
-THIS IS A MIRROR OF THE SOFTWARE PROJECT SYNTREENET, SEE
-http://www.syntree.net/
-
 ===========
 syntreenet
 ===========
