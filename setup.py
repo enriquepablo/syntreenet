@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import setuptools
 
-version = '0.1.0a2'
+version = '0.1.0a3'
 
 
 with open("README.rst", "r") as fh:
@@ -22,6 +22,7 @@ setuptools.setup(
         "License :: OSI Approved :: GPLv3",
         "Operating System :: OS Independent",
     ],
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages('src'),
+    package_dir={'':'src'},
     include_package_data=True
 )
