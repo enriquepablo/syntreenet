@@ -525,8 +525,8 @@ Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
 .. _`RETE algorithm`: https://en.wikipedia.org/wiki/Rete_algorithm
 .. _Python: http://www.python.org/
 .. _`his Thesis`: http://reports-archive.adm.cs.cmu.edu/anon/1995/CMU-CS-95-113.pdf
-.. _syntreenet.babel.ont: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/babel/ont.py
-.. _syntreenet.scripts: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/scripts/
-.. _syntreenet.ruleset: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/ruleset.py
-.. _syntreenet.factset: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/factset.py
+.. _syntreenet.babel.ont: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/syntreenet/babel/ont.py
+.. _syntreenet.scripts: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/syntreenet/scripts/
+.. _syntreenet.ruleset: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/syntreenet/ruleset.py
+.. _syntreenet.factset: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/syntreenet/factset.py
 .. _PyCLIPS: https://pypi.org/project/pyclips/
