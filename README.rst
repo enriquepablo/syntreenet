@@ -84,9 +84,7 @@ and rules. A knowedge base is, then, a set of sentences, to which we can add new
 sentences, or query for facts.
 
 It must be noted that adding new rules after the knowledge base already
-contains facts is not implemented, though it would be trivial. Just query the
-fact set with the conditions and add the consecuences as facts with variables
-substituted according to the assignments in the answers.
+contains facts is not implemented, though it would be trivial.
 
 Installation and usage
 ++++++++++++++++++++++
