@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import setuptools
 
-version = '0.1.0a6'
+version = '0.1.0a10'
 
 
 with open("README.rst", "r") as fh:
