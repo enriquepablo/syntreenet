@@ -1,10 +1,23 @@
+
+THIS IS A MIRROR OF THE SOFTWARE PROJECT SYNTREENET, SEE
+http://www.syntree.net/
+
 ===========
 syntreenet
 ===========
 
-syntreenet_ is a library to develop `production rule systems`_ with match cost
-logarithmic in the size of the knowledge base (rules + facts in working
-memory).
+----------------------
+Scalable Rule Systems
+----------------------
+
+syntreenet_ is a Python_ library to develop `production rule systems`_ with
+match cost logarithmic in the size of the knowledge base (rules + facts in
+working memory).
+
+It is licensed under the GPLv3_ and can be found at pypi_.
+
+Note that this is intended as a showcase implementation of the underlying
+algorithm, only to be used in a researcher frame of mind.
 
 Basic concepts and terminology
 ++++++++++++++++++++++++++++++
@@ -492,7 +505,9 @@ Meta
 Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
 
 
-.. _syntreenet: http://syntree.net/
+.. _syntreenet: http://www.syntree.net/
+.. _GPLv3: https://www.gnu.org/licenses/gpl-3.0.txt
+.. _pypi: https://pypi.org/project/syntreenet/
 .. _`production rule systems`: https://en.wikipedia.org/wiki/Production_system_%28computer_science%29
 .. _CLIPS: http://www.clipsrules.net/
 .. _Jess: https://jessrules.com/
