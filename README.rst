@@ -86,9 +86,7 @@ sentences, or query for facts.
 It must be noted that adding new rules after the knowledge base already
 contains facts is not implemented, though it would be trivial. Just query the
 fact set with the conditions and add the consecuences as facts with variables
-substituted according to the assignments in the answers. The complexity woud
-not be good, though, since we would have to intersect the answers to the
-different conditions.
+substituted according to the assignments in the answers.
 
 Installation and usage
 ++++++++++++++++++++++
