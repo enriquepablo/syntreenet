@@ -63,10 +63,10 @@ inverse, one that takes any fact and results in a set of tuples of syntagms,
 and one that takes a set of tuples of syntagms and returns the corresponding
 fact (or warns about the set not corresponding to any well formed fact), this
 grammar can be plugged in to syntreenet. This allows us to abstract away the
-library from grammatical concerns. "Whatever your grammar is, provide me your
-productions as sets of hashable tuples of syntagms; now I can use those to make
-hash tables of nodes". Or, for short, "give me your paths, and I'll use them in
-my hash tables".
+library from grammatical concerns. We can compare 2 facts comparing their paths,
+we can tell whether they are equal or whether one becomes equal to the other
+when we make some substitution, etc.; Without knowing anything about their
+internal structure.
 
 I want to stress this: syntreenet knows nothing about syntax. Facts are a black
 box with whatever internal structure that is appropriate for their universe of
