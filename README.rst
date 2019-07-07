@@ -16,6 +16,8 @@ It is licensed under the GPLv3_ and can be found at pypi_.
 Note that this is intended as a showcase implementation of the underlying
 algorithm, only to be used in a researcher frame of mind.
 
+.. contents::
+
 Basic concepts and terminology
 ++++++++++++++++++++++++++++++
    
