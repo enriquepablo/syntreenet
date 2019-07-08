@@ -159,6 +159,16 @@ class Path:
     def __repr__(self):
         return f'<Path: {str(self)}>'
 
+    @staticmethod
+    def from_segments(segments : tuple) -> Path:
+        try:
+            value = segments[-1]
+        except KeyError:
+            # a rather strange place to impose the constraint that paths cannot
+            # be empty.
+            raise PathCannotBeEmpty()
+        return Path(value, value.is_var(), segments)
+
     def substitute(self, varmap : Matching) -> Path:
         '''
         Return a new Path copy of self where the syntagms appearing as keys in
@@ -166,8 +176,7 @@ class Path:
         '''
         segments = tuple([s in varmap and varmap[s] or s for s in
             self.segments])
-        value = self.value in varmap and varmap[self.value] or self.value
-        return Path(value, value.is_var(), segments)
+        return self.from_segments(segments)
 
     def change_value(self, val : Syntagm) -> Path:
         '''
