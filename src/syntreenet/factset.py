@@ -61,11 +61,11 @@ class BaseSSNode:
                 # AA AF 03 0 - Algorithmic Analysis - Adding a fact to the factset.
                 # AA AF 03 1 - _create_paths only depends on the information
                 # AA AF 03 2 - whithin the fact being added, and is O(1) wrt size(kb)
-                parent._create_paths(rest)
+                parent._create_paths(rest, first=True)
                 return
             parent = node
 
-    def _create_paths(self, paths : List[Path]):
+    def _create_paths(self, paths : List[Path], first : bool = False):
         '''
         Used while adding new facts, to create the sequence of
         nodes that correpond to its list of paths and did not exist previously.
@@ -77,7 +77,7 @@ class BaseSSNode:
                 if hasattr(node, 'path'):
                     if not path.can_follow(node.path):
                         continue
-                elif not path.can_be_first():
+                elif not first and not path.can_be_first():
                     continue
                 new_node = SSNode(path=path,
                                   var=path.var,

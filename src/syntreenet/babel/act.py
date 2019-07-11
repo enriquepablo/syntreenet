@@ -29,11 +29,11 @@ class PathOrder:
 
     @staticmethod
     def can_follow(snd : Path, fst : Path) -> bool:
-        pass
+        return True
 
     @staticmethod
     def can_be_first(path : Path) -> bool:
-        pass
+        return False
 
     @classmethod
     def new_var(cls, seed):
@@ -66,7 +66,7 @@ nothing = Word('__nothing')
 empty_path = Path(nothing)
 
 @dataclass(frozen=True, order=True)
-class Expression(Syntagm):
+class Expression(Syntagm, PathOrder):
     '''
     '''
     pairs : tuple = field(default_factory=tuple)
@@ -135,5 +135,75 @@ class F(Fact):
             else:
                 subodict = OrderedDict()
 
-            odict[key] = self.add_path(segments[1:], subodict)
+            odict[key] = self._add_path_to_odict(segments[1:], subodict)
         return odict
+
+
+'''
+time
+
+verb
+
+should
+
+can
+
+what
+
+this has to be taken into account 
+
+(verb: can, can: X1, what: [X2](verb: X3, X3: X1))
+(verb: should, should: X1, what: [X4](X2))
+->
+(X4)
+
+X1 can 
+
+placed
+
+at
+
+move
+
+from, towards
+
+body1
+
+place1, place2
+
+X1 should move from X2 to X3
+X1 placed at X2
+->
+X1 can move from X2 to X3
+
+(verb: should, should: body1, what: (verb: move
+
+
+
+'''
+
+
+
+'''
+When matchng facts in rule sets, 
+
+
+get_paths must return paths in the same way query uses the queried paths or
+create paths used the parents adding rules.
+
+it must return expressions as values in paths, in as many subdivisions as makes
+sense. 
+
+perhaps we need 2 get_paths, one to build the rules limited to provide the
+paths present in the rule, 
+
+
+No - what we need are special variables, for which value we need to query the
+matching facts, and are simply stored until used in consecuences. When they are
+repeated in another condition, mmmmm.... we produce a new rule, so we must use
+the matching that we have.
+
+I see it like theexpr will ony be used in a condition of the new rule if it
+wont overwrite any other expr. so its substitution must be delayed untl all
+normal substitutions have taken place.
+'''

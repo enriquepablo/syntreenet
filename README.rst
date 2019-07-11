@@ -46,7 +46,13 @@ I will call facts to what some people call WMEs (working memory elements).
 With syntreenet, the grammar for the facts (and thus for the conditions and
 consecuences) has to be plugged in. The tools to define grammars offered by
 the library are custom, in that they do not adhere to any standard or
-convention, and are fairly free. Basically any grammar whose productions
+convention, and are fairly free. I use here the term grammar in a ery
+traditional way, just as "tool that allows you to produce any correct sentence
+in some language". What I call here "grammar files" are just Python modules
+that provide classes with which one can build the objects that will then be
+used as facts with syntreenet.
+
+Basically any grammar whose productions
 (facts) can be represented as trees can be plugged in (but see the next
 paragraph for a clarification). These grammars are provided in the form
 of facts and syntagms - which are defined in whatever ad-hoc manner. The
