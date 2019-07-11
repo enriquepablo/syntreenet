@@ -185,7 +185,7 @@ class FactSet(BaseSSNode):
         '''
         self.response = []
         paths = fact.get_paths()
-        matching = Matching()
+        matching = Matching(origin=fact)
         self.query_paths(paths, matching)
         if not self.response:
             return False

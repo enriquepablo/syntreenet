@@ -38,6 +38,9 @@ class Word(Syntagm):
     def is_var(self):
         return self.var
 
+    def is_extra_var(self):
+        return False
+
     @classmethod
     def new_var(cls, seed):
         return Word(f'__X{seed}', True)

@@ -46,6 +46,11 @@ class Syntagm(ABC):
         Whether the syntagm is a variable.
         '''
 
+    def is_extra_var(self) -> bool:
+        '''
+        Whether the syntagm is an extra variable.
+        '''
+
     @staticmethod
     def can_follow(snd : Path, fst : Path) -> bool:
         '''
@@ -99,6 +104,13 @@ class Fact(ABC):
         '''
         raise NotImplementedError()
 
+    def match_path(self, path : Path) -> Tuple[Syntagm, Syntagm]:
+        '''
+        Get the syntagm that corresponds to self.segments[:-1] and return it
+        matched to self.segments[1]
+        '''
+        raise NotImplementedError()
+
     def substitute(self, matching: Matching) -> Fact:
         '''
         Return a new fact, copy of self, where every appearance of the
@@ -124,7 +136,7 @@ class Fact(ABC):
         '''
         paths = self.get_paths()
         new_paths = []
-        varmap = Matching()
+        varmap = Matching(origin=self)
         counter = 1
         for path in paths:
             if path.var:
@@ -233,6 +245,9 @@ class Path:
                 return Path(new_value, new_value.is_var(), tuple(new_segments))
         return self
 
+    def extra_var(self) -> bool:
+        return self.segments[-1].is_extra_var()
+
 
 @dataclass(frozen=True)
 class Matching:
@@ -240,6 +255,7 @@ class Matching:
     A matching is basically a mapping of Syntagms.
     '''
     mapping : tuple = field(default_factory=tuple)  # Tuple[Tuple[Syntagm, Syntagm]]
+    origin : Optional[Fact] = None
 
     def __str__(self):
         return ', '.join([f'{k} : {v}' for k, v in self.mapping])
@@ -263,7 +279,7 @@ class Matching:
         '''
         Return a copy of self
         '''
-        return Matching(copy(self.mapping))
+        return Matching(mapping=copy(self.mapping), origin=self.origin)
 
     def get(self, key : Syntagm) -> Optional[Syntagm]:
         '''
@@ -301,7 +317,7 @@ class Matching:
         if not spent:
             mapping.append((key, value))
         mapping_tuple = tuple(mapping)
-        return Matching(mapping_tuple)
+        return Matching(mapping=mapping_tuple, origin=self.origin)
 
     def invert(self) -> Matching:
         '''
@@ -309,7 +325,7 @@ class Matching:
         values the keys.
         '''
         mapping = tuple((v, k) for k, v in self.mapping)
-        return Matching(mapping)
+        return Matching(mapping=mapping, origin=self.origin)
 
     def get_real_matching(self, varmap : Matching) -> Matching:
         '''
@@ -320,4 +336,4 @@ class Matching:
         for k, v in self.mapping:
             k = varmap.get(k) or k
             real_mapping.append((k, v))
-        return Matching(tuple(real_mapping))
+        return Matching(mapping=tuple(real_mapping), origin=self.origin)

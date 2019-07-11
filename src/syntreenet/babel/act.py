@@ -41,19 +41,23 @@ class PathOrder:
 
 
 @dataclass(frozen=True, order=True)
-class Word(Syntagm):
+class Word(Syntagm, PathOrder):
     '''
     The syntagms in this grammar are words, with no internal structure - just a
     name.
     '''
     name : str
     var : bool = False
+    extra_var : bool = False
 
     def __str__(self):
         return self.name
 
     def is_var(self):
         return self.var
+
+    def is_extra_var(self):
+        return self.extra_var
 
     def to_odict(self):
         return self
@@ -74,7 +78,16 @@ class Expression(Syntagm, PathOrder):
     def __str__(self):
         return '(%s)' % ', '.join([f'{k}: {v}' for k, v in self.pairs])
 
+    def __getitem__(self, key):
+        for k, v in self.pairs:
+            if k == key:
+                return v
+        raise KeyError(f'{self} has no key {key}')
+
     def is_var(self):
+        return False
+
+    def is_extra_var(self):
         return False
 
     @classmethod
@@ -115,7 +128,12 @@ class F(Fact):
 
     def get_paths(self):
         return self.expr.get_path_list(())
-         
+
+    def match_path(self, path):
+        expr = self.expr
+        for s in path.segments[:-1]:
+            expr = expr[s]
+        return path[-1], expr
 
     @classmethod
     def from_paths(cls, paths):

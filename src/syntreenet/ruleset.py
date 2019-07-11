@@ -116,6 +116,7 @@ class ParentNode:
     var_children : Dict[Path, Node] = field(default_factory=dict)
     children : Dict[Path, Node] = field(default_factory=dict)
     endnode : Optional[EndNode] = None
+    extra_var_path : Optional[Path] = None
 
     def propagate(self, paths : List[Path], matching : Matching):
         '''
@@ -123,6 +124,9 @@ class ParentNode:
         matches, recursively.
         Accumulate variable assignments in matching.
         '''
+        if self.extra_var_path is not None:
+            var, val = matching.origin.match_path(self.extra_var_path)
+            matching = matching.setitem(var, val)
         visited = get_parents(self)
         if paths:
             path = paths.pop(0)
@@ -310,11 +314,17 @@ class KnowledgeBase(ParentNode, ChildNode):
         return node, visited_vars, rest_paths
 
     def _create_paths(self, node : ParentNode, paths : List[Path], visited : List[Syntagm]) -> Node:
+        extra_var_path : Optional[Path] = None
         # AA AR 09 0 - Algorithmic Analysis - Adding a rule
         # AA AR 09 1 - we iterate over the paths that correspond to a condition.
         # AA AR 09 2 - This only depends on the complexity of the condition.
         # AA AR 09 3 - wrt the size of the kb, this is O(1)
         for path in paths:
+            if path.extra_var():
+                extra_var_path = path
+                # assuming here that a path.extra_var() == True cannot be the
+                # last path.
+                continue
             # AA AR 10 0 - Algorithmic Analysis - Adding a rule
             # AA AR 10 1 - the rest of the operations from here on only operate on
             # AA AR 10 2 - the information provided in the condition,
@@ -324,13 +334,17 @@ class KnowledgeBase(ParentNode, ChildNode):
                 if path.value not in visited:
                     visited.append(path.value)
                     node.var_child = next_node
-                    node = next_node
                 else:
                     node.var_children[path] = next_node
-                    node = next_node
             else:
                 node.children[path] = next_node
-                node = next_node
+
+            if extra_var_path is not None:
+                next_node.extra_var_path = extra_var_path
+                extra_var_path = None
+
+            node = next_node
+
         return cast(Node, node)
 
     def _add_fact(self, fact : Fact):
@@ -341,7 +355,7 @@ class KnowledgeBase(ParentNode, ChildNode):
         # AA FR 01 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
         logger.debug(f'adding fact "{fact}" to rete')
         paths = fact.get_paths()
-        matching = Matching()
+        matching = Matching(origin=fact)
         # AA FR 02 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
         # AA FR 02 1 - We continue the analisis whithin propagate
         self.propagate(paths, matching)
