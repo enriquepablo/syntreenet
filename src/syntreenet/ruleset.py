@@ -98,7 +98,6 @@ class EndNode(ChildNode, End):
             real_matching = matching.get_real_matching(varmap)
             activation = Activation(rule, real_matching, condition)
             rete.activations.append(activation)
-        rete.process()
 
 
 @dataclass
@@ -228,7 +227,7 @@ class KnowledgeBase(ParentNode, ChildNode):
         Add new sentence (rule or fact) to the knowledge base.
         '''
         if isinstance(s, Rule):
-            activation = Activation(s, self._empty_matching, self._empty_fact)
+            activation = Activation(s, EMPTY_MATCHING, EMPTY_FACT)
         elif isinstance(s, Fact):
             activation = Activation(s)
         self.activations.append(activation)
@@ -378,7 +377,6 @@ class KnowledgeBase(ParentNode, ChildNode):
         cons = tuple(c.substitute(act.matching) for c in rule.consecuences)
         acts = [Activation(c) for c in cons]
         self.activations.extend(acts)
-        self.process()
 
     def process(self):
         '''
