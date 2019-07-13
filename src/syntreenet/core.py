@@ -301,22 +301,15 @@ class Matching:
                 return k
         return None
 
-    def setitem(self, key : Syntagm, value : Syntagm) -> Matching:
+    def merge(self, other : Matching) -> Matching:
         '''
-        Return a new Matching, copy of self, with the addition (or the
-        replacement if the key was already in self) of the new key value pair.
         '''
-        spent = False
-        mapping = []
-        for k, v in self.mapping:
-            if k == key:
-                mapping.append((key, value))
-                spent = True
-            else:
-                mapping.append((k, v))
-        if not spent:
-            mapping.append((key, value))
-        mapping_tuple = tuple(mapping)
+        nextmap = dict(self.mapping)
+        for k, v in other.mapping:
+            if k in nextmap and v != nextmap[k]:
+                raise ValueError(f'Merge error {self} and {other}')
+            nextmap[k] = v
+        mapping_tuple = tuple((k, v) for k, v in nextmap.items())
         return Matching(mapping=mapping_tuple, origin=self.origin)
 
     def invert(self) -> Matching:
