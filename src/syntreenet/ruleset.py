@@ -29,6 +29,10 @@ from .util import get_parents
 from .logging import logger
 
 
+EMPTY_MATCHING : Matching = Matching()
+EMPTY_FACT : Fact = Fact()
+
+
 @dataclass(frozen=True)
 class Rule:
     '''
@@ -36,7 +40,6 @@ class Rule:
     '''
     conditions : tuple = field(default_factory=tuple)
     consecuences : tuple = field(default_factory=tuple)
-    empty_matching : Matching = Matching()
 
     def __str__(self):
         conds = '; '.join([str(c) for c in self.conditions])
@@ -215,8 +218,7 @@ class KnowledgeBase(ParentNode, ChildNode):
     activations : List[Activation] = field(default_factory=list)
     processing : bool = False
     counter : int = 0
-    _empty_matching : Matching = Matching()
-    _empty_fact : Fact = Fact()
+    processing_new_rule : bool = True
 
     def __str__(self):
         return 'rete root'
@@ -265,7 +267,8 @@ class KnowledgeBase(ParentNode, ChildNode):
             # AA AR 08 0 - Algorithmic Analysis - Adding a rule
             # AA AR 08 1 - We continue the analisis whithin _create_paths
             node = self._create_paths(node, paths_left, visited_vars)
-            # AA AR 11 0 - Algorithmic Analysis - the rest of the operations from here on
+            # AA AR 11 0 - Algorithmic Analysis - Adding a rule
+            # AA AR 11 0 - the rest of the operations from here on
             # AA AR 11 1 - only operate on the information provided in the condition,
             # AA AR 11 2 - and therefore are O(1) wrt the size of the kb.
             if node.endnode is None:
