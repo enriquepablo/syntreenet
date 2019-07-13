@@ -61,6 +61,7 @@ class Activation:
     precedent : Union[Rule, Fact]
     matching : Optional[Matching] = None
     condition : Optional[Fact] = None
+    query_rules : bool = True
 
 
 @dataclass
@@ -96,7 +97,7 @@ class EndNode(ChildNode, End):
         # AA FR 10 4 - consecuences.
         for condition, varmap, rule in self.conditions:
             real_matching = matching.get_real_matching(varmap)
-            activation = Activation(rule, real_matching, condition)
+            activation = Activation(rule, real_matching, condition, rete.querying_rules)
             rete.activations.append(activation)
 
 
@@ -217,7 +218,7 @@ class KnowledgeBase(ParentNode, ChildNode):
     activations : List[Activation] = field(default_factory=list)
     processing : bool = False
     counter : int = 0
-    processing_new_rule : bool = True
+    querying_rules : bool = True
 
     def __str__(self):
         return 'rete root'
@@ -227,9 +228,9 @@ class KnowledgeBase(ParentNode, ChildNode):
         Add new sentence (rule or fact) to the knowledge base.
         '''
         if isinstance(s, Rule):
-            activation = Activation(s, EMPTY_MATCHING, EMPTY_FACT)
+            activation = Activation(s, EMPTY_MATCHING, EMPTY_FACT, True)
         elif isinstance(s, Fact):
-            activation = Activation(s)
+            activation = Activation(s, query_rules=False)
         self.activations.append(activation)
         self.process()
 
@@ -362,7 +363,7 @@ class KnowledgeBase(ParentNode, ChildNode):
         # AA FR 02 1 - We continue the analisis whithin propagate
         self.propagate(paths, matching)
 
-    def _add_new_rule(self, act : Activation):
+    def _new_rule_activation(self, act : Activation):
         rule = cast(Rule, act.precedent)
         conds = tuple(c.substitute(act.matching) for c in
                 rule.conditions if c != act.condition)
@@ -372,11 +373,19 @@ class KnowledgeBase(ParentNode, ChildNode):
         new_rule = Rule(conds, cons)
         self._add_rule(new_rule)
 
-    def _add_new_facts(self, act : Activation):
+    def _new_fact_activations(self, act : Activation):
         rule = cast(Rule, act.precedent)
         cons = tuple(c.substitute(act.matching) for c in rule.consecuences)
         acts = [Activation(c) for c in cons]
         self.activations.extend(acts)
+
+    def _new_rule(self, act):
+        rule = act.precedent
+        for cond in rule.conditions:
+            answers = self.ask(cond)
+            for a in answers:
+                act = Activation(rule, a, cond, True)
+                self.activations.append(act)
 
     def process(self):
         '''
@@ -387,6 +396,7 @@ class KnowledgeBase(ParentNode, ChildNode):
             self.processing = True
             while self.activations:
                 act = self.activations.pop(0)
+                self.querying_rules = act.query_rules
                 self.counter += 1
                 s = act.precedent
                 if isinstance(s, Fact):
@@ -396,8 +406,10 @@ class KnowledgeBase(ParentNode, ChildNode):
                         self.fset.add_fact(s)
                 elif isinstance(s, Rule):
                     if len(s.conditions) > 1:
-                        self._add_new_rule(act)
+                        self._new_rule_activation(act)
+                        if self.querying_rules:
+                            self._new_rule(act)
                     else:
-                        self._add_new_facts(act)
+                        self._new_fact_activations(act)
 
             self.processing = False
