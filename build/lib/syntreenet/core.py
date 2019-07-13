@@ -46,11 +46,6 @@ class Syntagm(ABC):
         Whether the syntagm is a variable.
         '''
 
-    def is_extra_var(self) -> bool:
-        '''
-        Whether the syntagm is an extra variable.
-        '''
-
     @staticmethod
     def can_follow(snd : Path, fst : Path) -> bool:
         '''
@@ -104,13 +99,6 @@ class Fact(ABC):
         '''
         raise NotImplementedError()
 
-    def match_path(self, path : Path) -> Tuple[Syntagm, Syntagm]:
-        '''
-        Get the syntagm that corresponds to self.segments[:-1] and return it
-        matched to self.segments[1]
-        '''
-        raise NotImplementedError()
-
     def substitute(self, matching: Matching) -> Fact:
         '''
         Return a new fact, copy of self, where every appearance of the
@@ -136,7 +124,7 @@ class Fact(ABC):
         '''
         paths = self.get_paths()
         new_paths = []
-        varmap = Matching(origin=self)
+        varmap = Matching()
         counter = 1
         for path in paths:
             if path.var:
@@ -171,16 +159,6 @@ class Path:
     def __repr__(self):
         return f'<Path: {str(self)}>'
 
-    @staticmethod
-    def from_segments(segments : tuple) -> Path:
-        try:
-            value = segments[-1]
-        except KeyError:
-            # a rather strange place to impose the constraint that paths cannot
-            # be empty.
-            raise PathCannotBeEmpty()
-        return Path(value, value.is_var(), segments)
-
     def substitute(self, varmap : Matching) -> Path:
         '''
         Return a new Path copy of self where the syntagms appearing as keys in
@@ -188,7 +166,8 @@ class Path:
         '''
         segments = tuple([s in varmap and varmap[s] or s for s in
             self.segments])
-        return self.from_segments(segments)
+        value = self.value in varmap and varmap[self.value] or self.value
+        return Path(value, value.is_var(), segments)
 
     def change_value(self, val : Syntagm) -> Path:
         '''
@@ -245,9 +224,6 @@ class Path:
                 return Path(new_value, new_value.is_var(), tuple(new_segments))
         return self
 
-    def extra_var(self) -> bool:
-        return self.segments[-1].is_extra_var()
-
 
 @dataclass(frozen=True)
 class Matching:
@@ -255,7 +231,6 @@ class Matching:
     A matching is basically a mapping of Syntagms.
     '''
     mapping : tuple = field(default_factory=tuple)  # Tuple[Tuple[Syntagm, Syntagm]]
-    origin : Optional[Fact] = None
 
     def __str__(self):
         return ', '.join([f'{k} : {v}' for k, v in self.mapping])
@@ -279,7 +254,7 @@ class Matching:
         '''
         Return a copy of self
         '''
-        return Matching(mapping=copy(self.mapping), origin=self.origin)
+        return Matching(copy(self.mapping))
 
     def get(self, key : Syntagm) -> Optional[Syntagm]:
         '''
@@ -319,24 +294,13 @@ class Matching:
         mapping_tuple = tuple(mapping)
         return Matching(mapping_tuple)
 
-    def merge(self, other : Matching) -> Matching:
-        '''
-        '''
-        nextmap = dict(self.mapping)
-        for k, v in other.mapping:
-            if k in nextmap and v != nextmap[k]:
-                raise ValueError(f'Merge error {self} and {other}')
-            nextmap[k] = v
-        mapping_tuple = tuple((k, v) for k, v in nextmap.items())
-        return Matching(mapping=mapping_tuple, origin=self.origin)
-
     def invert(self) -> Matching:
         '''
         Return a new Matching, where the keys are the values in self and the
         values the keys.
         '''
         mapping = tuple((v, k) for k, v in self.mapping)
-        return Matching(mapping=mapping, origin=self.origin)
+        return Matching(mapping)
 
     def get_real_matching(self, varmap : Matching) -> Matching:
         '''
@@ -347,4 +311,4 @@ class Matching:
         for k, v in self.mapping:
             k = varmap.get(k) or k
             real_mapping.append((k, v))
-        return Matching(mapping=tuple(real_mapping), origin=self.origin)
+        return Matching(tuple(real_mapping))

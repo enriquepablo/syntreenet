@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from copy import copy
 from dataclasses import dataclass, field
-from typing import List, Dict, Union, Tuple, Any, Optional, Union, cast
+from typing import List, Dict, Union, Tuple, Any, Optional, cast
 
 from .core import Syntagm, Fact, Path, Matching
 from .factset import FactSet
@@ -29,20 +29,17 @@ from .util import get_parents
 from .logging import logger
 
 
-EMPTY_MATCHING : Matching = Matching()
-EMPTY_FACT : Fact = Fact()
-
-
 @dataclass(frozen=True)
 class Rule:
     '''
     A rule. A set of conditions plus a set of consecuences.
     '''
-    conditions : tuple = field(default_factory=tuple)  # tuple of tuples
+    conditions : tuple = field(default_factory=tuple)
     consecuences : tuple = field(default_factory=tuple)
+    empty_matching : Matching = Matching()
 
     def __str__(self):
-        conds = ' > '.join(['; '.join([str(c) for c in cs]) for cs in self.conditions])
+        conds = '; '.join([str(c) for c in self.conditions])
         cons = '; '.join([str(c) for c in self.consecuences])
         return f'{conds} -> {cons}'
 
@@ -61,12 +58,11 @@ class Activation:
     precedent : Union[Rule, Fact]
     matching : Optional[Matching] = None
     condition : Optional[Fact] = None
-    query_rules : bool = True
 
 
 @dataclass
 class End:
-    continuations : List[Tuple[Fact, Matching, Rule]] = field(default_factory=list)
+    conditions : List[Tuple[Fact, Matching, Rule]] = field(default_factory=list)
 
 
 @dataclass
@@ -89,17 +85,17 @@ class EndNode(ChildNode, End):
         matching contains the variable assignment that equates the condition
         and the new fact.
         '''
-        root = get_parents(self)[-1]
-        kb = root.kb
+        rete = get_parents(self)[-1]
         # AA FR 10 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
         # AA FR 10 1 - Here we recurse over all the rules that have the condition
         # AA FR 10 2 - that has been matched. This add a linear dependency on the number of
         # AA FR 10 3 - consecuences to the complexity of adding a fact with all its
         # AA FR 10 4 - consecuences.
-        for condition, varmap, rule in self.continuations:
+        for condition, varmap, rule in self.conditions:
             real_matching = matching.get_real_matching(varmap)
-            activation = Activation(rule, real_matching, condition, kb.querying_rules)
-            root.add_activation(activation)
+            activation = Activation(rule, real_matching, condition)
+            rete.activations.append(activation)
+        rete.process()
 
 
 @dataclass
@@ -120,7 +116,6 @@ class ParentNode:
     var_children : Dict[Path, Node] = field(default_factory=dict)
     children : Dict[Path, Node] = field(default_factory=dict)
     endnode : Optional[EndNode] = None
-    extra_var_path : Optional[Path] = None
 
     def propagate(self, paths : List[Path], matching : Matching):
         '''
@@ -128,9 +123,6 @@ class ParentNode:
         matches, recursively.
         Accumulate variable assignments in matching.
         '''
-        if self.extra_var_path is not None:
-            var, val = cast(Fact, matching.origin).match_path(self.extra_var_path)
-            matching = matching.setitem(var, val)
         visited = get_parents(self)
         if paths:
             path = paths.pop(0)
@@ -157,9 +149,9 @@ class ParentNode:
                     # AA FR 05 3 - above, and the depth of recursion reached here does not
                     # AA FR 05 4 - depend on the size of the kb, but on the provided grammar.
                     child.propagate(copy(paths), matching.copy())
-                seen_var : Optional[Syntagm] = matching.getkey(path.value)
-                if seen_var is not None:
-                    new_path = path.change_value(seen_var)
+                var : Optional[Syntagm] = matching.getkey(path.value)
+                if var is not None:
+                    new_path = path.change_value(var)
                     # AA FR 06 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
                     # AA FR 06 1 - Here we consult a hash table with very few
                     # AA FR 06 2 - elements - at most the one less y than the number of
@@ -210,10 +202,73 @@ class Node(ParentNode, ChildNode, ContentNode):
 
 
 @dataclass
-class RuleSet(ParentNode, ChildNode):
-    kb : Optional[KnowledgeBase] = None
+class KnowledgeBase(ParentNode, ChildNode):
+    '''
+    The object that contains both the graph of rules (or the tree of
+    conditions) and the graph of facts.
+    '''
+    fset : FactSet = field(default_factory=FactSet)
+    activations : List[Activation] = field(default_factory=list)
+    processing : bool = False
+    counter : int = 0
+    _empty_matching : Matching = Matching()
+    _empty_fact : Fact = Fact()
 
-    def follow_paths(self, paths : List[Path]) -> Tuple[ParentNode, List[Syntagm], List[Path]]:
+    def __str__(self):
+        return 'rete root'
+
+    def tell(self, s : Any):
+        '''
+        Add new sentence (rule or fact) to the knowledge base.
+        '''
+        if isinstance(s, Rule):
+            activation = Activation(s, self._empty_matching, self._empty_fact)
+        elif isinstance(s, Fact):
+            activation = Activation(s)
+        self.activations.append(activation)
+        self.process()
+
+    def ask(self, q : Fact) -> Optional[List[Matching]]:
+        '''
+        Check whether a fact exists in the knowledge base, or, if it contains
+        variables, find all the variable assigments that correspond to facts
+        that exist in the knowledge base.
+        '''
+        return self.fset.ask_fact(q)
+
+    def _add_rule(self, rule):
+        '''
+        This method is the entry to the agorithm to add new rules to the knowledge
+        base.
+        '''
+        logger.info(f'adding rule "{rule}"')
+        endnodes = []
+        # AA AR 01 0 - Algorithmic Analysis - Adding a Rule
+        # AA AR 01 1 - For each rule we process its conditions sequentially.
+        # AA AR 01 2 - This provides a linear dependence to processing a rule on the
+        # AA AR 01 3 - number of conditions it holds.
+        # AA AR 01 4 - wrt the size of the kb, this is O(1)
+        for cond in rule.conditions:
+            # AA AR 02 0 - Algorithmic Analysis - Adding a rule
+            # AA AR 02 1 - normalize will visit all segments in all paths corresponding
+            # AA AR 02 2 - to a condition. This only depends on the complexity of
+            # AA AR 02 3 - the condition.
+            # AA AR 02 4 - wrt the size of the kb, this is O(1)
+            varmap, paths = cond.normalize()
+            # AA AR 03 0 - Algorithmic Analysis - Adding a rule
+            # AA AR 03 1 - We continue the analisis whithin _follow_paths
+            node, visited_vars, paths_left = self._follow_paths(paths)
+            # AA AR 08 0 - Algorithmic Analysis - Adding a rule
+            # AA AR 08 1 - We continue the analisis whithin _create_paths
+            node = self._create_paths(node, paths_left, visited_vars)
+            # AA AR 11 0 - Algorithmic Analysis - the rest of the operations from here on
+            # AA AR 11 1 - only operate on the information provided in the condition,
+            # AA AR 11 2 - and therefore are O(1) wrt the size of the kb.
+            if node.endnode is None:
+                node.endnode = EndNode(parent=node)
+            node.endnode.conditions.append((cond, varmap, rule))
+
+    def _follow_paths(self, paths : List[Path]) -> Tuple[ParentNode, List[Syntagm], List[Path]]:
         node : ParentNode = self
         visited_vars = []
         rest_paths : List[Path] = []
@@ -254,18 +309,12 @@ class RuleSet(ParentNode, ChildNode):
                     break
         return node, visited_vars, rest_paths
 
-    def create_paths(self, node : ParentNode, paths : List[Path], visited : List[Syntagm]) -> Node:
-        extra_var_path : Optional[Path] = None
+    def _create_paths(self, node : ParentNode, paths : List[Path], visited : List[Syntagm]) -> Node:
         # AA AR 09 0 - Algorithmic Analysis - Adding a rule
         # AA AR 09 1 - we iterate over the paths that correspond to a condition.
         # AA AR 09 2 - This only depends on the complexity of the condition.
         # AA AR 09 3 - wrt the size of the kb, this is O(1)
         for path in paths:
-            if path.extra_var():
-                extra_var_path = path
-                # assuming here that a path.extra_var() == True cannot be the
-                # last path.
-                continue
             # AA AR 10 0 - Algorithmic Analysis - Adding a rule
             # AA AR 10 1 - the rest of the operations from here on only operate on
             # AA AR 10 2 - the information provided in the condition,
@@ -275,159 +324,14 @@ class RuleSet(ParentNode, ChildNode):
                 if path.value not in visited:
                     visited.append(path.value)
                     node.var_child = next_node
+                    node = next_node
                 else:
                     node.var_children[path] = next_node
+                    node = next_node
             else:
                 node.children[path] = next_node
-
-            if extra_var_path is not None:
-                next_node.extra_var_path = extra_var_path
-                extra_var_path = None
-
-            node = next_node
-
+                node = next_node
         return cast(Node, node)
-
-    def add_rule(self, rule):
-        '''
-        This method is the entry to the agorithm to add new rules to the knowledge
-        base.
-        '''
-        logger.info(f'adding rule "{rule}"')
-        endnodes = []
-        # AA AR 01 0 - Algorithmic Analysis - Adding a Rule
-        # AA AR 01 1 - For each rule we process its conditions sequentially.
-        # AA AR 01 2 - This provides a linear dependence to processing a rule on the
-        # AA AR 01 3 - number of conditions it holds.
-        # AA AR 01 4 - wrt the size of the kb, this is O(1)
-        for con in self.get_cons(rule):
-            # AA AR 02 0 - Algorithmic Analysis - Adding a rule
-            # AA AR 02 1 - normalize will visit all segments in all paths corresponding
-            # AA AR 02 2 - to a condition. This only depends on the complexity of
-            # AA AR 02 3 - the condition.
-            # AA AR 02 4 - wrt the size of the kb, this is O(1)
-            varmap, paths = con.normalize()
-            # AA AR 03 0 - Algorithmic Analysis - Adding a rule
-            # AA AR 03 1 - We continue the analisis whithin follow_paths
-            node, visited_vars, paths_left = self.follow_paths(paths)
-            # AA AR 08 0 - Algorithmic Analysis - Adding a rule
-            # AA AR 08 1 - We continue the analisis whithin create_paths
-            node = self.create_paths(node, paths_left, visited_vars)
-            # AA AR 11 0 - Algorithmic Analysis - Adding a rule
-            # AA AR 11 0 - the rest of the operations from here on
-            # AA AR 11 1 - only operate on the information provided in the condition,
-            # AA AR 11 2 - and therefore are O(1) wrt the size of the kb.
-            if node.endnode is None:
-                node.endnode = EndNode(parent=node)
-            node.endnode.continuations.append((con, varmap, rule))
-
-    def get_cons(self, rule):
-        raise NotImplementedError()
-
-    def add_activation(self, act):
-        raise NotImplementedError()
-
-@dataclass
-class CondSet(RuleSet):
-
-    def get_cons(self, rule):
-        return rule.conditions[0]
-
-    def add_activation(self, act):
-        self.kb.activations.append(activation)
-
-
-@dataclass
-class ConsSet(RuleSet):
-    backtracks : List[Activation] = field(default_factory=list)
-
-    def get_cons(self, rule):
-        return rule.consecuences
-
-    def add_activation(self, act):
-        self.backtracks.append(activation)
-
-
-@dataclass
-class KnowledgeBase:
-    '''
-    The object that contains both the graph of rules (or the tree of
-    conditions) and the graph of facts.
-    '''
-    fset : FactSet = field(default_factory=FactSet)
-    dset : CondSet = field(default_factory=CondSet)
-    sset : ConsSet = field(default_factory=ConsSet)
-    activations : List[Activation] = field(default_factory=list)
-    processing : bool = False
-    counter : int = 0
-    querying_rules : bool = True
-
-    def __post_init__(self):
-        self.dset.kb = self
-        self.sset.kb = self
-
-    def __str__(self):
-        return 'Knowledge base'
-
-    def tell(self, s : Any):
-        '''
-        Add new sentence (rule or fact) to the knowledge base.
-        '''
-        if isinstance(s, Rule):
-            activation = Activation(s, EMPTY_MATCHING, EMPTY_FACT, True)
-        elif isinstance(s, Fact):
-            activation = Activation(s, query_rules=False)
-        self.activations.append(activation)
-        self.process()
-
-    def ask(self, q : Fact) -> Union[List[Matching], bool]:
-        '''
-        Check whether a fact exists in the knowledge base, or, if it contains
-        variables, find all the variable assigments that correspond to facts
-        that exist in the knowledge base.
-        '''
-        response = self.fset.ask_fact(q)
-        if not response:
-            return False
-        if len(response) == 1 and not response[0].mapping:
-            return True
-        return response
-
-    def query_goal(self, fact : Fact) -> list:
-        paths = fact.get_paths()
-        matching = Matching(origin=fact)
-        self.sset.propagate(paths, matching)
-        fulfillments = []
-        for bt in self.sset.backtracks:
-            conds = [[c.substitute(bt.matching) for c in cs]
-                    for cs in cast(Rule, bt.precedent).conditions]
-            needed = []
-            known = []
-            for cs in conds:
-                for cond in cs:
-                    answers = self.ask(cond)
-                    if answers is False:
-                        needed.append(cond)
-                    elif not answers is True:
-                        known.append(answers)
-            if known:
-                preresults = []
-                results = known[0]
-                for more in known[1:]:
-                    for p in cast(List[Matching], results):
-                        for a in cast(List[Matching], more):
-                            try:
-                                preresults.append(p.merge(a))
-                            except ValueError:
-                                pass
-                    results = preresults
-                    preresults = []
-                needed = [[n.substitute(m) for n in cast(List[Fact], needed)]
-                        for m in cast(List[Matching], results)]
-
-            fulfillments.append(needed)
-        return fulfillments
-
 
     def _add_fact(self, fact : Fact):
         '''
@@ -437,43 +341,27 @@ class KnowledgeBase:
         # AA FR 01 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
         logger.debug(f'adding fact "{fact}" to rete')
         paths = fact.get_paths()
-        matching = Matching(origin=fact)
+        matching = Matching()
         # AA FR 02 0 - Algorithmic Analysis - Checking a Fact with the RuleSet
         # AA FR 02 1 - We continue the analisis whithin propagate
-        self.dset.propagate(paths, matching)
+        self.propagate(paths, matching)
 
-    def _new_rule_activation(self, act : Activation):
+    def _add_new_rule(self, act : Activation):
         rule = cast(Rule, act.precedent)
-        conds = [[c.substitute(act.matching) for c in cs if c != act.condition]
-                for cs in rule.conditions]
-        to_query : List[Fact] = []
-        if len(conds) > 1:
-            to_query = conds[1]
-            conds = [conds[0] + conds[1]] + conds[2:]
-        new_conds = tuple(tuple(cs) for cs in conds)
+        conds = tuple(c.substitute(act.matching) for c in
+                rule.conditions if c != act.condition)
         cons = tuple(c.substitute(act.matching) for c in rule.consecuences)
-        new_rule = Rule(new_conds, cons)
-        self.dset.add_rule(new_rule)
-        self.sset.add_rule(new_rule)
-        for cond in to_query:
-            answers = self.ask(cond)
-            for a in cast(List[Matching], answers):
-                act = Activation(new_rule, a, cond, True)
-                self.activations.append(act)
+        cons = cast(Tuple[Fact], cons)
+        conds = cast(Tuple[Fact], conds)
+        new_rule = Rule(conds, cons)
+        self._add_rule(new_rule)
 
-    def _new_fact_activations(self, act : Activation):
+    def _add_new_facts(self, act : Activation):
         rule = cast(Rule, act.precedent)
         cons = tuple(c.substitute(act.matching) for c in rule.consecuences)
         acts = [Activation(c) for c in cons]
         self.activations.extend(acts)
-
-    def _new_rule(self, act):
-        rule = act.precedent
-        for cond in rule.conditions[0]:
-            answers = self.ask(cond)
-            for a in answers:
-                act = Activation(rule, a, cond, True)
-                self.activations.append(act)
+        self.process()
 
     def process(self):
         '''
@@ -484,7 +372,6 @@ class KnowledgeBase:
             self.processing = True
             while self.activations:
                 act = self.activations.pop(0)
-                self.querying_rules = act.query_rules
                 self.counter += 1
                 s = act.precedent
                 if isinstance(s, Fact):
@@ -493,11 +380,9 @@ class KnowledgeBase:
                         self._add_fact(s)
                         self.fset.add_fact(s)
                 elif isinstance(s, Rule):
-                    if sum(len(cs) for cs in s.conditions) > 1:
-                        self._new_rule_activation(act)
-                        if self.querying_rules:
-                            self._new_rule(act)
+                    if len(s.conditions) > 1:
+                        self._add_new_rule(act)
                     else:
-                        self._new_fact_activations(act)
+                        self._add_new_facts(act)
 
             self.processing = False

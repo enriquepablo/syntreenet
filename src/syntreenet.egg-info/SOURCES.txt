@@ -1,0 +1,17 @@
+README.rst
+setup.py
+src/syntreenet/__init__.py
+src/syntreenet/core.py
+src/syntreenet/factset.py
+src/syntreenet/logging.py
+src/syntreenet/ruleset.py
+src/syntreenet/util.py
+src/syntreenet.egg-info/PKG-INFO
+src/syntreenet.egg-info/SOURCES.txt
+src/syntreenet.egg-info/dependency_links.txt
+src/syntreenet.egg-info/top_level.txt
+src/syntreenet/babel/__init__.py
+src/syntreenet/babel/ont.py
+src/syntreenet/scripts/__init__.py
+src/syntreenet/scripts/benchmark_ont.py
+src/syntreenet/scripts/benchmark_ont_clips.py

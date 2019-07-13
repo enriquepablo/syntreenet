@@ -1,0 +1,128 @@
+
+
+
+
+* Allow secondary conditions that only are added to the tree when the primary
+  condition has matched
+* when a primary condition is matched and the sec conditins are substituted with
+  the primary assignment, they have to be asked to the factset, and the answers
+  used to produce new rules with the rest of the conditins
+* we need any depth for the hyerarchy, with tertiary conditions that become
+  secondary when the primary matches, etc.
+
+there has to bea mode of adding rules that puts them trough tell rather than
+through add_rule, which for each condition, before adding it to the rletree, asks
+the facttree and adds the rest of the rule as activations. These rules that are
+added as activations have to be treated the same way.
+
+when a new rule is added
+  for each primary condition
+    ask the factset with the condition
+    add the answers as activations
+    for the resulting activations that are new rules
+      also add them asking the factset with the rules
+
+when a fact matches a condition and produces activations
+for rules with only primary conditions
+  the activations that correspond to rules are added without asking the factset
+
+when a fact matches a condition and produces activations
+for rules with secondary conditions
+  when a secondary condition becomes primary the resulting activation is
+  treated as a new rule
+
+when a rule with secondary 
+
+
+* Allow adding rules when there are facts
+
+a rule is added
+put in the activations queue
+with empty matching and condition
+
+
+
+a rule taken from the activations queue
+remove attached condition, rplace attached matching
+if there are remaining conditions
+  with each remaining condition
+  make a branch in the RT
+else
+  with each consecuence
+  make an activation and put in the queue
+
+
+A fact matches a condition
+the rule is put in the activatins queue
+with the matched condition and the matching
+
+* goals: a tree of consecuences, query it with goals, obtain the conditions in
+* the rules of the consecs - possibly with variables - and use them as queries
+* in the facts set. those without answer are what's needed.
+
+a goal produces a set of answers (matched consecuence and matching)
+with each answer
+  for each rule that the consecuence belongs to
+    grab the conditions
+    substitute them with the matching
+    for each condition
+      query the substituted cond in the factset
+      if there are answers
+        keep the answers
+      else
+        keep the question
+
+
+DONE SO FAR
+---------------------------------------
+
+add an act logic
+
+* Use a 3rd party PEG parser - parsimonious looks good.
+
+* hook for other actions
+
+* add tests
+
+* add sphinx
+
+
+superstición
+
+cualquier propmesa que hagas, debes hacer honor a ella para mantener la
+confianza de aquellos a los que se la hiciste.
+Si te haces una promesa a tí mismo, la puedes romper siempre que quieras, que
+no tiene por qué cambiar laconfianza que tienes en tí mismo - aunque sí quizá
+cómo te conoces: que promesas te puedes hacer y cumplir. lo cual da
+satisfacción. romper una promesa a tí mismo debe frustrar - y recomenzar.
+
+El problema es la superstición - el creer que algo te escucha cuando te haces
+las promesas, que en realidad no son a tí mismo aunque sólo tú escuches, sino
+que son a algo que está por encima de tí. Entonces cuando rompes una promesa te
+sientes un sucio pecador. Pero no tienes contrapartida: cuando la mantienes, no
+tienes mayores posibilidades de conseguir lo que pedías a cambio de lo
+prometido... a no ser que mantenerla te haga esforzarte con más fuerza y
+confianza.
+
+
+
+
+----------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

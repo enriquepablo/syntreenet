@@ -17,8 +17,9 @@
 # along with any part of the terms project.
 # If not, see <http://www.gnu.org/licenses/>.
 
-from dataclasses import dataclass
+from dataclasses import field, dataclass
 from collections import OrderedDict
+from typing import List
 
 from ..core import Syntagm, Fact, Path
 from ..ruleset import Rule, KnowledgeBase
