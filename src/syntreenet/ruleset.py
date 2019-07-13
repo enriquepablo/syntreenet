@@ -408,8 +408,8 @@ class KnowledgeBase:
                 preresults = []
                 results = known[0]
                 for more in known[1:]:
-                    for a in more:
-                        for p in results:
+                    for p in results:
+                        for a in more:
                             try:
                                 preresults.append(p.merge(a))
                             except ValueError:
