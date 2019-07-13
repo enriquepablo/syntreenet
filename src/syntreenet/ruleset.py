@@ -38,11 +38,11 @@ class Rule:
     '''
     A rule. A set of conditions plus a set of consecuences.
     '''
-    conditions : tuple = field(default_factory=tuple)
+    conditions : tuple = field(default_factory=tuple)  # tuple of tuples
     consecuences : tuple = field(default_factory=tuple)
 
     def __str__(self):
-        conds = '; '.join([str(c) for c in self.conditions])
+        conds = ' > '.join(['; '.join([str(c) for c in cs]) for cs in self.conditions])
         cons = '; '.join([str(c) for c in self.consecuences])
         return f'{conds} -> {cons}'
 
@@ -254,7 +254,7 @@ class KnowledgeBase(ParentNode, ChildNode):
         # AA AR 01 2 - This provides a linear dependence to processing a rule on the
         # AA AR 01 3 - number of conditions it holds.
         # AA AR 01 4 - wrt the size of the kb, this is O(1)
-        for cond in rule.conditions:
+        for cond in rule.conditions[0]:
             # AA AR 02 0 - Algorithmic Analysis - Adding a rule
             # AA AR 02 1 - normalize will visit all segments in all paths corresponding
             # AA AR 02 2 - to a condition. This only depends on the complexity of
@@ -365,13 +365,21 @@ class KnowledgeBase(ParentNode, ChildNode):
 
     def _new_rule_activation(self, act : Activation):
         rule = cast(Rule, act.precedent)
-        conds = tuple(c.substitute(act.matching) for c in
-                rule.conditions if c != act.condition)
+        conds = [[c.substitute(act.matching) for c in cs if c != act.condition]
+                for cs in rule.conditions]
+        to_query = []
+        if len(conds) > 1:
+            to_query = conds[1]
+            conds = [conds[0] + conds[1]] + conds[2:]
+        new_conds = tuple(tuple(cs) for cs in conds)
         cons = tuple(c.substitute(act.matching) for c in rule.consecuences)
-        cons = cast(Tuple[Fact], cons)
-        conds = cast(Tuple[Fact], conds)
-        new_rule = Rule(conds, cons)
+        new_rule = Rule(new_conds, cons)
         self._add_rule(new_rule)
+        for cond in to_query:
+            answers = self.ask(cond)
+            for a in answers:
+                act = Activation(new_rule, a, cond, True)
+                self.activations.append(act)
 
     def _new_fact_activations(self, act : Activation):
         rule = cast(Rule, act.precedent)
@@ -381,7 +389,7 @@ class KnowledgeBase(ParentNode, ChildNode):
 
     def _new_rule(self, act):
         rule = act.precedent
-        for cond in rule.conditions:
+        for cond in rule.conditions[0]:
             answers = self.ask(cond)
             for a in answers:
                 act = Activation(rule, a, cond, True)
@@ -405,7 +413,7 @@ class KnowledgeBase(ParentNode, ChildNode):
                         self._add_fact(s)
                         self.fset.add_fact(s)
                 elif isinstance(s, Rule):
-                    if len(s.conditions) > 1:
+                    if sum(len(cs) for cs in s.conditions) > 1:
                         self._new_rule_activation(act)
                         if self.querying_rules:
                             self._new_rule(act)
