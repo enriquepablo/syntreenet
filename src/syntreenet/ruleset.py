@@ -394,6 +394,7 @@ class KnowledgeBase:
         return response
 
     def query_goal(self, fact : Fact) -> list:
+        self.sset.backtracks = []
         paths = fact.get_paths()
         matching = Matching(origin=fact)
         self.sset.propagate(paths, matching)
