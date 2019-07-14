@@ -75,6 +75,7 @@ class Expression(Syntagm, PathOrder):
     '''
     '''
     pairs : tuple = field(default_factory=tuple)
+    extra_var : Optional[Syntagm] = None
 
     def __str__(self):
         return '(%s)' % ', '.join([f'{k}: {v}' for k, v in self.pairs])
@@ -92,11 +93,11 @@ class Expression(Syntagm, PathOrder):
         return False
 
     @classmethod
-    def from_odict(cls, odict):
+    def from_odict(cls, odict, extra_var=None):
         pairs = []
         for k, v in odict.items():
             pairs.append((k, v.from_odict(v)))
-        return cls(pairs)
+        return cls(pairs, extra_var)
 
     def to_odict(self):
         odict = OrderedDict()
@@ -108,6 +109,8 @@ class Expression(Syntagm, PathOrder):
         path_list = []
         for k, v in self.pairs:
             new_base = base + (k,)
+            if isinstance(v.extra_var, Syntagm):
+                path_list.append(Path.from_segments(new_base + (v.extra_var,)))
             if isinstance(v, Word):
                 path_list.append(Path.from_segments(new_base + (v,)))
             else:
@@ -139,10 +142,27 @@ class F(Fact):
     @classmethod
     def from_paths(cls, paths):
         odict = OrderedDict()
+        extra_vars = []
         for path in paths:
-            self._add_path_to_odict(path)
+            if path[-1].is_extra_var():
+                extra_vars.append(path)
+            else:
+                self._add_path_to_odict(path)
 
-        return cls(Expression.from_odict(odict))
+        f = cls(Expression.from_odict(odict))
+        for ev in extra_vars:
+            f.add_extra_var(ev)
+        return f
+
+    def add_extra_var(self, var):
+        root = parent = self.expr.to_odict()
+        expr = None
+        for s in path.segments[:-1]:
+            parent = expr
+            expr = parent[s]
+        new_expr = Expression(expr.pairs, var)
+        parent[s] = new_expr
+        return F(Expression.from_odict(root))
 
     def _add_path_to_odict(self, segments, odict):
         key = segments[0]
@@ -158,23 +178,35 @@ class F(Fact):
         return odict
 
 
+X1 = Word('X1', var=True)
+X2 = Word('X2', var=True)
+X3 = Word('X3', var=True)
+
+time = Word('time')
+verb = Word('verb')
+should = Word('should')
+can = Word('can')
+what = Word('what')
+
+prem1 = F((((verb, can), (can, X1)
+
+
 '''
-time
-
-verb
-
-should
-
-can
-
-what
-
-this has to be taken into account 
-
 (verb: can, can: X1, what: [X2](verb: X3, X3: X1))
 (verb: should, should: X1, what: [X4](X2))
 ->
 (X4)
+ = Word('')
+ = Word('')
+ = Word('')
+ = Word('')
+
+
+
+
+
+
+
 
 X1 can 
 
@@ -197,6 +229,28 @@ X1 can move from X2 to X3
 
 (verb: should, should: body1, what: (verb: move
 
+
+
+------------------------
+
+will - goals
+
+knowledge - timeless factset and ruleset
+
+present - timeful factset and ruleset
+
+query present and knowledge with goals
+
+add the facts needed to fulfill the goals
+
+interchange present with peers
+
+put info from peers in next present
+
+advance time and add past present to present with the consecuences of passing
+time
+
+query new present with goals...
 
 
 '''
