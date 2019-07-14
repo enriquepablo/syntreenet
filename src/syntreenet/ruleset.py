@@ -455,7 +455,8 @@ class KnowledgeBase:
         cons = tuple(c.substitute(act.matching) for c in rule.consecuences)
         new_rule = Rule(new_conds, cons)
         self.dset.add_rule(new_rule)
-        self.sset.add_rule(new_rule)
+        if len(new_conds) == 1:
+            self.sset.add_rule(new_rule)
         for cond in to_query:
             answers = self.ask(cond)
             for a in cast(List[Matching], answers):

@@ -19,7 +19,7 @@
 
 from dataclasses import field, dataclass
 from collections import OrderedDict
-from typing import List
+from typing import List, Optional
 
 from ..core import Syntagm, Fact, Path
 from ..ruleset import Rule, KnowledgeBase
@@ -49,7 +49,8 @@ class Word(Syntagm, PathOrder):
     '''
     name : str
     var : bool = False
-    extra_var : bool = False
+    extra_var : Optional[Syntagm] = None
+    is_extra : bool = False
 
     def __str__(self):
         return self.name
@@ -58,7 +59,7 @@ class Word(Syntagm, PathOrder):
         return self.var
 
     def is_extra_var(self):
-        return self.extra_var
+        return self.is_extra
 
     def to_odict(self):
         return self
@@ -182,13 +183,26 @@ X1 = Word('X1', var=True)
 X2 = Word('X2', var=True)
 X3 = Word('X3', var=True)
 
+F1 = Word('F1', var=True, is_extra=True)
+F2 = Word('F2', var=True, is_extra=True)
+F1_ = Word('F1', var=True, extra_var=F2)
+
 time = Word('time')
 verb = Word('verb')
 should = Word('should')
 can = Word('can')
 what = Word('what')
 
-prem1 = F((((verb, can), (can, X1)
+expr1 = Expression(((verb, X3), (X3, X1)), extra_var=F1)
+expr2 = Expression(((verb, can), (can, X1), (what, expr1)))
+
+prem1 = F(expr2)
+
+expr3 = Expression(((verb, should), (should, X1), (what, F1_)))
+
+prem2 = F(expr3)
+
+rule1 = Rule(((prem1,), (prem2,)), (F2,))
 
 
 '''
