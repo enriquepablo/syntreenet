@@ -35,7 +35,8 @@ class BaseSSNode:
     to nodes.
     '''
     parent : Optional[BaseSSNode] = None
-    children : Dict[Path, 'SSNode'] = field(default_factory=dict)
+    logic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
+    nonlogic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
     response : List[Matching] = field(default_factory=list)
 
     def follow_paths(self, paths : List[Path]):
@@ -44,46 +45,39 @@ class BaseSSNode:
         existing nodes that correpond to its list of paths.
         '''
         parent = self
-        # AA AF 01 0 - Algorithmic Analysis - Adding a fact to the factset.
-        # AA AF 01 1 - we iterate over the paths that correspond to a fact.
-        # AA AF 01 2 - This only depends on the complexity of the facts.
-        # AA AF 01 3 - wrt the size of the kb, this is O(1)
         for i, path in enumerate(paths):
-            # AA AF 02 0 - Algorithmic Analysis - Adding a fact to the factset.
-            # AA AF 02 1 - Here we consult a hash table with a number of
-            # AA AF 02 2 - children that is proportional to both the complexity of the
-            # AA AF 02 3 - conditions and to the size of the kb.
-            # AA AF 02 4 - so wrt the size of the kb, this is at worst
-            # AA AF 02 5 - O(log n)
-            node = parent.children.get(path)
+            if path.can_be_var():
+                node = parent.logic_children.get(path)
+                if node and not path.is_leaf():
+                    new_paths = Path.filter_paths(paths[i:], path)
+                    node.follow_paths(new_paths)
+                    continue
+            else:
+                node = self.nonlogic_children.get(path)
             if node is None:
-                rest = paths[i:]
-                # AA AF 03 0 - Algorithmic Analysis - Adding a fact to the factset.
-                # AA AF 03 1 - _create_paths only depends on the information
-                # AA AF 03 2 - whithin the fact being added, and is O(1) wrt size(kb)
-                parent._create_paths(rest, first=True)
+                parent._create_paths(paths[i:])
                 return
             parent = node
 
-    def _create_paths(self, paths : List[Path], first : bool = False):
+    def _create_paths(self, paths : List[Path]):
         '''
         Used while adding new facts, to create the sequence of
         nodes that correpond to its list of paths and did not exist previously.
         '''
-        if paths:
-            visited = get_parents(self)
-            path = paths.pop(0)
-            for node in visited:
-                if hasattr(node, 'path'):
-                    if not path.can_follow(node.path):
-                        continue
-                elif not first and not path.can_be_first():
+        parent = self
+        for i, path in enumerate(paths):
+            new_node = SSNode(path=path,
+                              var=path.is_var(),
+                              parent=node)
+            if path.can_be_var():
+                parent.logic_children[path] = new_node
+                if node and not path.is_leaf():
+                    new_paths = Path.filter_paths(paths[i:], path)
+                    new_node._create_paths(new_paths)
                     continue
-                new_node = SSNode(path=path,
-                                  var=path.var,
-                                  parent=node)
-                node.children[path] = new_node
-                new_node._create_paths(paths)
+            else:
+                parent.nonlogic_children[path] = new_node
+            parent = node
 
     def query_paths(self, paths : List[Path], matching : Matching):
         '''
@@ -95,38 +89,21 @@ class BaseSSNode:
             path = paths.pop(0)
             syn = path.value
             child : Optional[SSNode]
-            if path.var:
-                if syn in matching:
-                    old_syn = matching[syn]
-                    path = path.change_value(old_syn)
-                    paths = [p.change_subpath(path, old_syn) for p in paths]
-                else:
-                    # AA QF 02 0 - Algorithmic Analysis - Querying a fact
-                    # AA QF 02 1 - Here we recurse over all children in the hash
-                    # AA QF 02 2 - table. Using variables in queries will add a linear
-                    # AA QF 02 3 - dependence on the number of answers.
-                    for child in self.children.values():  # type
-                        new_path = path.change_value(child.path.value)
-                        rest_paths = [p.change_subpath(new_path, syn) for p in paths]
+            if path.is_var():
+                if syn not in matching:
+                    for child in self.logic_children.values():
                         new_matching = matching.setitem(syn, child.path.value)
-                        # AA QF 03 0 - Algorithmic Analysis - Querying a fact
-                        # AA QF 03 1 - Recurse though child nodes. The cost of each
-                        # AA QF 03 2 - step is logarithmic wrt the size of the kb, as we've seen
-                        # AA QF 03 3 - in (AA QF 04), and the depth of recursion reached here
-                        # AA QF 03 4 - does not depend on the size of the kb, but on the
-                        # AA QF 03 5 - provided grammar.
-                        child.query_paths(rest_paths, new_matching)
-            # AA QF 04 0 - Algorithmic Analysis - Querying a fact
-            # AA QF 04 1 - Here we consult a hash table with a number of
-            # AA QF 04 2 - elements that is proportional to both the complexity of the
-            # AA QF 04 3 - conditions and to the size of the kb.
-            # AA QF 04 4 - so wrt the size of the kb, this is at worst
-            # AA QF 04 5 - O(log n)
-            child = self.children.get(path)
-            if child is not None:
-                # AA QF 05 0 - Algorithmic Analysis - Querying a fact
-                # AA QF 05 1 - The same as (AA QF 03)
-                child.query_paths(paths, matching)
+                        child.query_paths(paths, new_matching)
+                        return
+                else:
+                    path, _ = path.substitute(matching) 
+
+            next_node = self.nonlogic_children.get(path)
+            if not next_node:
+                next_node = self.logic_children.get(path)
+            if next_node:
+                next_node.query_paths(paths, matching)
+
         else:
             self._response_append(matching)
 
@@ -172,7 +149,7 @@ class FactSet(BaseSSNode):
         Add a new fact to the set.
         '''
         logger.debug(f'adding fact {fact} to fset')
-        paths = fact.get_paths()
+        paths = fact.get_all_paths()
         self.follow_paths(paths)
 
     def ask_fact(self, fact : Fact) -> List[Matching]:
@@ -184,7 +161,7 @@ class FactSet(BaseSSNode):
         True if there are no variables.
         '''
         self.response = []
-        paths = fact.get_paths()
+        paths = fact.get_leaf_paths()
         matching = Matching(origin=fact)
         self.query_paths(paths, matching)
         return self.response

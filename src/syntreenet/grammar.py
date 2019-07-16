@@ -24,6 +24,8 @@ from dataclasses import dataclass, field
 from abc import ABC
 from typing import List, Tuple, Optional
 
+from parsimonious.nodes import Node
+
 
 @dataclass(frozen=True)
 class Segment(ABC):
@@ -31,20 +33,52 @@ class Segment(ABC):
     '''
     expr : str
     text : str
-    start : int
-    end : int
+    start : int = 0
+    end : int = 0
+    leaf : bool = False
+    identity_tuple : tuple = field(init=False)
+
+    def __post_init__(self):
+        self.identity_tuple = (self.text, self.expr)
+        if self.end == 0:
+            self.end = len(self.text)
+
+    def __str__(self):
+        return self.text
+
+    def __repr__(self):
+        return f'<Segment: {self.expr.name}: {self}>'
+
+    def __hash__(self):
+        return hash(self.identity_tuple)
+
+    def __equals__(self, other):
+        return self.identity_tuple == other.identity_tuple
 
     def is_var(self) -> bool:
         '''
         Whether the segment represents a variable.
         '''
+        return self.expr.name == 'var'
 
-    def is_extra_var(self) -> bool:
-        '''
-        Whether the segment represents an extra variable.
-        '''
-        # XXX if shorter sfacts being impied by longer facts belongs to the
-        # logics, thwn this is just  a shortcut and worthless XXX
+    def can_be_var(self):
+        return self.is_var() or self.expr.name.startswith('v_')
+
+    def substitute(self, matching):
+        matched = matching.get(self)
+        if matched is not None:
+            text = matched.text
+            expr = matched.expr
+            start = self.start
+            end = self.start + len(matched.text)
+            return Segment(text, expr, start, end, True)
+        return self
+
+
+def make_var(n):
+    text = f'__X{n}'
+    expr = Expression(name='var')
+    return Segment(text, expr)
 
 
 @dataclass(frozen=True)
@@ -52,7 +86,6 @@ class Path:
     '''
     '''
     segments : tuple = field(default_factory=tuple)  # Tuple[Segment...]
-    var : bool = False
 
     def __str__(self):
         return ' -> '.join([str(s) for s in self.segments])
@@ -63,57 +96,62 @@ class Path:
     @property
     def value(self):
         '''
-        Return the last segment
+        Return the string value (expr) of the last segment
         '''
         return self.segments[-1]
 
-    @property
-    def var(self):
+    def is_var(self):
         '''
         Return whether the last segment is a var
         '''
         return self.segments[-1].is_var()
 
-    def extra_var(self) -> bool:
-        return self.segments[-1].is_extra_var()
+    def can_be_var(self):
+        v = self.segments[-1]
+        return v.is_var() or v.expr.name.startswith('v_')
 
-    def substitute(self, varmap : Matching) -> Path:
+    def is_leaf(self):
         '''
-        Return a new Path copy of self where the syntagms appearing as keys in
-        varmap have been replaced by their corresponding values.
+        Return whether this is the path of a leaf
         '''
-        # XXX when a segment is changed, the text of the rest of the segments in
-        # the path must also change XXX
-        segments = tuple([s in varmap and varmap[s] or s for s in
-            self.segments])
-        if segments == self.segments:
-            return self
-        return Path(segments)
+        return self.segments[-1].leaf
+
+    def substitute(self, matching : Matching) -> Path:
+        '''
+        Return a new Path copy of self where if a segment appears as key in
+        matching it has been replaced by the corresponding value.
+        '''
+        new_segments = []
+        for segment in self.segments:
+            new_segment = segment.substitute(matching)
+            new_segments.append(new_segment)
+            if segment != new_segment:
+                offset = new_segment.end - segment.end
+                old_segment = segment
+                break
+        else:
+            return self, None
+        
+        real_new_segments = []
+        prev = new_segments[-1]
+        for segment in new_segments[-2::-1]:
+            text = (segment.text[:prev.start] +
+                    prev.text +
+                    segment.text[prev.end:])
+            end = segment.end + offset
+            new_segment = Segment(text, segment.expr, segment.start, end, False)
+            real_new_segments.append(new_segment)
+            prev = segment
+        
+        segments = tuple(real_new_segments[-1::-1]) + (prev,)
+        return Path(segments), old_segment
 
     def change_value(self, val : Syntagm) -> Path:
         '''
-        Return new Path, copy of self, where the value -the last syntagm in the
-        tuple- has been changed for the one provided in val.
+        Return new Path, copy of self, where the last segment in the
+        has been changed for the one provided in val.
         '''
-        # XXX when a segment is changed, the text of the rest of the segments in
-        # the path must also change XXX
-        return Path(self.segments[:-1] + (val,))
-
-    def can_follow(self, base : Path) -> bool:
-        '''
-        Can the syntactic element represented by self occur immediately to the
-        right of the one represented by base?
-        '''
-        raise NotImplementedError('''XXX  XXX XXX forEVER THIS IS A WRONG IDEA
-        THIS BELONGS IN THE LOGICS FOR GOS'S SAKE''')
-
-    def can_be_first(self) -> bool:
-        '''
-        Can the syntactic element represented by self occur as the first
-        element in a fact?
-        '''
-        raise NotImplementedError('''XXX  XXX XXX forEVER THIS IS A WRONG IDEA
-        THIS BELONGS IN THE LOGICS FOR GOS'S SAKE''')
+        return self.substitute(Matching(((self.segments[-1], val),)))
 
     def change_subpath(self, path : Path, old_value : Syntagm) -> Path:
         '''
@@ -121,31 +159,14 @@ class Path:
         replace that subpath with the provided path and its current value, and
         return it as a new path.
         '''
-        if len(self.segments) < len(path.segments):
-            return self
-        new_segments = []
-        for base, this in zip(path.segments[:-1], self.segments):
-            if base == this:
-                new_segments.append(base)
-            else:
-                break
-        else:
-            l = len(new_segments)
-            if self.segments[l] == old_value:
-                new_segments.append(path.segments[l])
-                new_segments += self.segments[l + 1:]
-                new_value = new_segments[-1]
-                return Path(new_value, new_value.is_var(), tuple(new_segments))
-        return self
-
-from parsimonious.nodes import Node
+        # XXX ???
 
 @dataclass(frozen=True)
 class Fact(ABC):
     '''
     '''
     text : str
-    paths : Tuple[Path] = field(default_factory=list)
+    paths : tuple
 
     @classmethod
     def from_parse_tree(cls, tree : Node) -> Fact:
@@ -154,42 +175,48 @@ class Fact(ABC):
         '''
         segment_list = []
         cls._visit_pnode(tree, (), segment_list)
-        return Path(tree.text, tuple(segment_list))
+        return cls(tree.text, tuple(segment_list))
 
     @classmethod
     def _visit_pnode(cls, node, root_path, all_paths, parent=None):
         expr = node.expr
         text = node.full_text[node.start: node.end]
-        if parent:
+        try:
             start = node.start - parent.start
             end = node.end - parent.start
-        else:
+        except AttributeError:  # node is root node
             start, end = 0, len(text)
-        segment = Segment(expr, text, start, end)
+        segment = Segment(expr, text, start, end, not bool(node.children))
         path = root_path + (segment,)
-        all_paths.append(path)
+        if segment.can_be_var():
+            all_paths.append(path)
         for child in node.children:
-            cls._visit_pnode(child, path, all_paths)
+            cls._visit_pnode(child, path, all_paths, parent=node)
 
-    def match_path(self, path : Path) -> Tuple[Syntagm, Syntagm]:
-        '''
-        Get the syntagm that corresponds to self.segments[:-1] and return it
-        matched to self.segments[1]
-        '''
-        raise NotImplementedError()
-
-    def substitute(self, matching: Matching) -> Fact:
+    def substitute(self, matching: Matching, kb) -> Fact:
         '''
         Return a new fact, copy of self, where every appearance of the
         syntagms given as keys in the matching has been replaced with the
         syntagm given as value for the key in the matching.
         '''
-        paths = self.get_paths()
         new_paths = []
-        for path in paths:
-            new_path = path.substitute(matching)
-            new_paths.append(new_path)
-        return self.from_paths(new_paths)
+        old_segments = []
+        old_paths = copy(self.paths):
+        while old_paths:
+            path = old_paths.pop(0)
+            for segment in old_segments:
+                if segment in path:
+                    break
+            else:
+                new_path, old_segment = path.substitute(matching) 
+                if old_segment:
+                    old_segments.append(old_segment)
+                if new_path.is_leaf():
+                    new_paths.append(new_path)
+        strfact = ''.join([p.value for p in new_paths])
+        tree = kb.parse(strfact)
+        return cls.from_parse_tree(tree)
+
 
     def normalize(self) -> Tuple[Matching, List[Path]]:
         '''
@@ -201,28 +228,25 @@ class Fact(ABC):
         with a matching representing all the variable replacements that have
         been done.
         '''
-        paths = self.get_paths()
-        new_paths = []
         varmap = Matching(origin=self)
         counter = 1
-        for path in paths:
-            if path.var:
+        for path in self.paths:
+            if path.is_var():
                 new_var = varmap.get(path.value)
                 if new_var is None:
-                    new_var = path.value.new_var(counter)
+                    new_var = make_var(counter)
                     counter += 1
                     varmap = varmap.setitem(path.value, new_var)
-            new_path = path.substitute(varmap)
-            new_paths.append(new_path)
-        return varmap.invert(), new_paths
+        new_fact = self.substitute(varmap)
+        return varmap.invert(), new_fact
 
 
 @dataclass(frozen=True)
 class Matching:
     '''
-    A matching is basically a mapping of Syntagms.
+    A matching is basically a mapping of Segments.
     '''
-    mapping : tuple = field(default_factory=tuple)  # Tuple[Tuple[Syntagm, Syntagm]]
+    mapping : tuple = field(default_factory=tuple)  # Tuple[Tuple[Segment, Segment]]
     origin : Optional[Fact] = None
 
     def __str__(self):
@@ -231,13 +255,13 @@ class Matching:
     def __repr__(self):
         return f'<Match: {str(self)}>'
 
-    def __getitem__(self, key : Syntagm) -> Syntagm:
+    def __getitem__(self, key : Segment) -> Segment:
         for k, v in self.mapping:
             if k == key:
                 return v
         raise KeyError(f'key {key} not in {self}')
 
-    def __contains__(self, key : Syntagm) -> bool:
+    def __contains__(self, key : Segment) -> bool:
         for k, _ in self.mapping:
             if k == key:
                 return True
@@ -249,17 +273,17 @@ class Matching:
         '''
         return Matching(mapping=copy(self.mapping), origin=self.origin)
 
-    def get(self, key : Syntagm) -> Optional[Syntagm]:
+    def get(self, key : Segment) -> Optional[Segment]:
         '''
         Return the value corresponding to the provided key, or None if the key
         is not present.
         '''
-        try:
-            return self[key]
-        except KeyError:
-            return None
+        for k, v in self.mapping:
+            if k == key:
+                return v
+        return None
 
-    def getkey(self, value : Syntagm) -> Optional[Syntagm]:
+    def getkey(self, value : Segment) -> Optional[Segment]:
         '''
         Return the key corresponding to the provided value, or None if the
         value is not present.
@@ -269,7 +293,7 @@ class Matching:
                 return k
         return None
 
-    def setitem(self, key : Syntagm, value : Syntagm) -> Matching:
+    def setitem(self, key : Segment, value : Segment) -> Matching:
         '''
         Return a new Matching, copy of self, with the addition (or the
         replacement if the key was already in self) of the new key value pair.
@@ -285,7 +309,7 @@ class Matching:
         if not spent:
             mapping.append((key, value))
         mapping_tuple = tuple(mapping)
-        return Matching(mapping_tuple)
+        return Matching(mapping_tuple, self.origin)
 
     def merge(self, other : Matching) -> Matching:
         '''
@@ -296,7 +320,7 @@ class Matching:
                 raise ValueError(f'Merge error {self} and {other}')
             nextmap[k] = v
         mapping_tuple = tuple((k, v) for k, v in nextmap.items())
-        return Matching(mapping=mapping_tuple, origin=self.origin)
+        return Matching(mapping_tuple, self.origin)
 
     def invert(self) -> Matching:
         '''
@@ -304,7 +328,7 @@ class Matching:
         values the keys.
         '''
         mapping = tuple((v, k) for k, v in self.mapping)
-        return Matching(mapping=mapping, origin=self.origin)
+        return Matching(mapping, self.origin)
 
     def get_real_matching(self, varmap : Matching) -> Matching:
         '''
@@ -315,7 +339,4 @@ class Matching:
         for k, v in self.mapping:
             k = varmap.get(k) or k
             real_mapping.append((k, v))
-        return Matching(mapping=tuple(real_mapping), origin=self.origin)
-
-
-def 
+        return Matching(tuple(real_mapping), self.origin)
