@@ -145,10 +145,10 @@ class F(Fact):
         odict = OrderedDict()
         extra_vars = []
         for path in paths:
-            if path[-1].is_extra_var():
+            if path.segments[-1].is_extra_var():
                 extra_vars.append(path)
             else:
-                self._add_path_to_odict(path)
+                cls._add_path_to_odict(path.segments, odict)
 
         f = cls(Expression.from_odict(odict))
         for ev in extra_vars:
@@ -165,7 +165,8 @@ class F(Fact):
         parent[s] = new_expr
         return F(Expression.from_odict(root))
 
-    def _add_path_to_odict(self, segments, odict):
+    @classmethod
+    def _add_path_to_odict(cls, segments, odict):
         key = segments[0]
         if len(segments) == 2:
             odict[key] = segments[1]
@@ -175,9 +176,11 @@ class F(Fact):
             else:
                 subodict = OrderedDict()
 
-            odict[key] = self._add_path_to_odict(segments[1:], subodict)
+            odict[key] = cls._add_path_to_odict(segments[1:], subodict)
         return odict
 
+
+kb = KnowledgeBase()
 
 X1 = Word('X1', var=True)
 X2 = Word('X2', var=True)
@@ -204,6 +207,7 @@ prem2 = F(expr3)
 
 rule1 = Rule(((prem1,), (prem2,)), (F2,))
 
+kb.tell(rule1)
 
 '''
 (verb: can, can: X1, what: [X2](verb: X3, X3: X1))
