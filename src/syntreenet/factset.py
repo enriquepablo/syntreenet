@@ -49,7 +49,7 @@ class BaseSSNode:
             if path.can_be_var():
                 node = parent.logic_children.get(path)
                 if node and not path.is_leaf():
-                    new_paths = Path.filter_paths(paths[i:], path)
+                    new_paths = path.paths_after(paths)
                     node.follow_paths(new_paths)
                     continue
             else:
@@ -65,26 +65,25 @@ class BaseSSNode:
         nodes that correpond to its list of paths and did not exist previously.
         '''
         parent = self
-        for i, path in enumerate(paths):
+        for path in paths:
             new_node = SSNode(path=path,
                               var=path.is_var(),
                               parent=node)
             if path.can_be_var():
                 parent.logic_children[path] = new_node
                 if node and not path.is_leaf():
-                    new_paths = Path.filter_paths(paths[i:], path)
+                    new_paths = path.paths_after(paths)
                     new_node._create_paths(new_paths)
                     continue
             else:
                 parent.nonlogic_children[path] = new_node
             parent = node
 
-    def query_paths(self, paths : List[Path], matching : Matching):
+    def query_paths(self, paths : List[Path], matching : Matching, kb):
         '''
         Match the paths corresponding to a query (possibly containing
         variables) with the paths in the nodes of the fact set.
         '''
-        # AA QF 01 - Algorithmic Analysis - Querying a fact
         if paths:
             path = paths.pop(0)
             syn = path.value
@@ -93,7 +92,7 @@ class BaseSSNode:
                 if syn not in matching:
                     for child in self.logic_children.values():
                         new_matching = matching.setitem(syn, child.path.value)
-                        child.query_paths(paths, new_matching)
+                        child.query_paths(copy(paths), new_matching, kb)
                         return
                 else:
                     path, _ = path.substitute(matching) 
@@ -102,7 +101,7 @@ class BaseSSNode:
             if not next_node:
                 next_node = self.logic_children.get(path)
             if next_node:
-                next_node.query_paths(paths, matching)
+                next_node.query_paths(paths, matching, kb)
 
         else:
             self._response_append(matching)
@@ -140,6 +139,7 @@ class FactSet(BaseSSNode):
     '''
     A set of facts arranged in a tree structure that facilitates queries.
     '''
+    kb : Optional[KnowledgeBase] = None
 
     def __str__(self):
         return 'fset'
@@ -163,5 +163,5 @@ class FactSet(BaseSSNode):
         self.response = []
         paths = fact.get_leaf_paths()
         matching = Matching(origin=fact)
-        self.query_paths(paths, matching)
+        self.query_paths(paths, matching, self.kb)
         return self.response
