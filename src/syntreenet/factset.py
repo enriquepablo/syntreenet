@@ -19,10 +19,11 @@
 
 from __future__ import annotations
 
+from copy import copy
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 
-from .core import Syntagm, Fact, Path, Matching
+from .grammar import Segment, Fact, Path, Matching
 from .util import get_parents
 from .logging import logger
 
@@ -68,18 +69,18 @@ class BaseSSNode:
         for path in paths:
             new_node = SSNode(path=path,
                               var=path.is_var(),
-                              parent=node)
+                              parent=parent)
             if path.can_be_var():
                 parent.logic_children[path] = new_node
-                if node and not path.is_leaf():
+                if not path.is_leaf():
                     new_paths = path.paths_after(paths)
                     new_node._create_paths(new_paths)
                     continue
             else:
                 parent.nonlogic_children[path] = new_node
-            parent = node
+            parent = new_node
 
-    def query_paths(self, paths : List[Path], matching : Matching, kb):
+    def query_paths(self, paths : List[Path], matching : Matching, kb : Any):
         '''
         Match the paths corresponding to a query (possibly containing
         variables) with the paths in the nodes of the fact set.
@@ -139,9 +140,9 @@ class FactSet(BaseSSNode):
     '''
     A set of facts arranged in a tree structure that facilitates queries.
     '''
-    kb : Optional[KnowledgeBase] = None
+    kb : Any = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return 'fset'
 
     def add_fact(self, fact: Fact):
@@ -150,7 +151,7 @@ class FactSet(BaseSSNode):
         '''
         logger.debug(f'adding fact {fact} to fset')
         paths = fact.get_all_paths()
-        self.follow_paths(paths)
+        self.follow_paths(list(paths))
 
     def ask_fact(self, fact : Fact) -> List[Matching]:
         '''
@@ -163,5 +164,5 @@ class FactSet(BaseSSNode):
         self.response = []
         paths = fact.get_leaf_paths()
         matching = Matching(origin=fact)
-        self.query_paths(paths, matching, self.kb)
+        self.query_paths(list(paths), matching, self.kb)
         return self.response

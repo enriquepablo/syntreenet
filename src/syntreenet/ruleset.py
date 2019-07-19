@@ -23,14 +23,9 @@ from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Dict, Union, Tuple, Any, Optional, Union, cast
 
-from .core import Syntagm, Fact, Path, Matching
+from .grammar import Segment, Fact, Path, Matching
 from .factset import FactSet
-from .util import get_parents
 from .logging import logger
-
-
-EMPTY_MATCHING : Matching = Matching()
-EMPTY_FACT : Fact = Fact()
 
 
 @dataclass(frozen=True)
@@ -41,7 +36,7 @@ class Rule:
     conditions : tuple = field(default_factory=tuple)
     consecuences : tuple = field(default_factory=tuple)
 
-    def __str__(self):
+    def __str__(self) -> str:
         conds = '; '.join([str(c) for c in self.conditions])
         cons = '; '.join([str(c) for c in self.consecuences])
         return f'{conds} -> {cons}'
@@ -78,19 +73,19 @@ class EndNode(ChildNode, End):
     mapping of the (normalized) variables in the condition in the ruleset, to
     the actual variables in the rule provided by the user.
     '''
+    kb : Any = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'end for : {self.parent}'
 
     def add_matching(self, matching : Matching):
         '''
         '''
-        root = get_parents(self)[-1]
-        kb = root.kb
         for condition, varmap, rule in self.continuations:
             real_matching = matching.get_real_matching(varmap)
-            activation = Activation(rule, real_matching, condition, kb.querying_rules)
-            root.add_activation(activation)
+            activation = Activation(rule, real_matching, condition,
+                                    self.kb.querying_rules)
+            self.kb.add_activation(activation)
 
 
 @dataclass
@@ -98,7 +93,7 @@ class ParentNode:
     '''
     '''
     var_child : Optional[Node] = None
-    var_children : Dict[Path, Node] = field(default_factory=dict)
+    var_children : List[Node] = field(default_factory=list)
     children : Dict[Path, Node] = field(default_factory=dict)
     endnode : Optional[EndNode] = None
 
@@ -116,9 +111,10 @@ class ParentNode:
                 if new_path.value == matching[vchild.path.value]:
                     new_paths = new_path.paths_after(paths)
                     vchild.propagate(new_paths, matching.copy())
+                    break
 
             if self.var_child is not None:
-                new_path = path.get_subpath(self.var_child.path, path)
+                new_path = path.get_subpath(self.var_child.path)
                 new_paths = new_path.paths_after(paths)
                 child_var = self.var_child.path.value
                 new_matching = matching.setitem(child_var, new_path.value)
@@ -146,21 +142,27 @@ class Node(ParentNode, ChildNode, ContentNode):
     A node in the tree of conditions.
     '''
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'node : {self.path}'
 
 
 @dataclass
 class RuleSet(ParentNode, ChildNode):
-    kb : Optional[KnowledgeBase] = None
+    kb : Any = None
 
-    def follow_paths(self, paths : List[Path]) -> Tuple[ParentNode, List[Syntagm], List[Path]]:
+    def follow_paths(self, paths : List[Path]) -> Tuple[ParentNode,
+                                                        List[Segment],
+                                                        List[Path]]:
         node : ParentNode = self
         visited_vars = []
         rest_paths : List[Path] = []
         for i, path in enumerate(paths):
             if path.is_var():
-                var_child = node.var_children.get(path)
+                var_child = None
+                for ch in node.var_children:
+                    if ch.path == path:
+                        var_child = ch
+                        break
                 if var_child is not None:
                     node = var_child
                 elif node.var_child and path == node.var_child.path:
@@ -178,7 +180,8 @@ class RuleSet(ParentNode, ChildNode):
                     break
         return node, visited_vars, rest_paths
 
-    def create_paths(self, node : ParentNode, paths : List[Path], visited : List[Syntagm]) -> Node:
+    def create_paths(self, node : ParentNode,
+                     paths : List[Path], visited : List[Segment]) -> Node:
         for path in paths:
             next_node = Node(path, path.is_var(), parent=node)
             if path.is_var():
@@ -186,30 +189,29 @@ class RuleSet(ParentNode, ChildNode):
                     visited.append(path.value)
                     node.var_child = next_node
                 else:
-                    node.var_children[path] = next_node
+                    node.var_children.append(next_node)
             else:
                 node.children[path] = next_node
             node = next_node
 
         return cast(Node, node)
 
-    def add_rule(self, rule):
+    def add_rule(self, rule : Rule):
         '''
         '''
         logger.info(f'adding rule "{rule}"')
-        endnodes = []
         for con in self.get_cons(rule):
             varmap, paths = con.normalize(self.kb)
             node, visited_vars, paths_left = self.follow_paths(paths)
             node = self.create_paths(node, paths_left, visited_vars)
             if node.endnode is None:
-                node.endnode = EndNode(parent=node)
+                node.endnode = EndNode(parent=node, kb=self.kb)
             node.endnode.continuations.append((con, varmap, rule))
 
-    def get_cons(self, rule):
+    def get_cons(self, rule : Rule) -> tuple:
         raise NotImplementedError()
 
-    def add_activation(self, act):
+    def add_activation(self, act : Activation):
         raise NotImplementedError()
 
 @dataclass

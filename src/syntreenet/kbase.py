@@ -17,20 +17,34 @@
 # along with any part of the terms project.
 # If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import annotations
+
+from copy import copy
+from dataclasses import dataclass, field
+from typing import List, Dict, Union, Tuple, Any, Optional, Union, cast
+
+from .grammar import Segment, Path, Fact, Matching
+from .factset import FactSet
+from .ruleset import CondSet, ConsSet, Activation, Rule
+from .logging import logger
 
 from parsimonious.grammar import Grammar
+
+
+EMPTY_MATCHING : Matching = Matching()
+EMPTY_FACT : Fact = Fact('')
 
 class KnowledgeBase:
     '''
     The object that contains both the graph of rules (or the tree of
     conditions) and the graph of facts.
     '''
-    def __init__(self, grammar_text, backend='parsimonious'):
+    def __init__(self, grammar_text : str, backend : str = 'parsimonious'):
         self.grammar = Grammar(grammar_text)
         self.fset = FactSet(kb=self)
         self.dset = CondSet(kb=self)
         self.sset = ConsSet(kb=self)
-        self.activations = list()
+        self.activations : List[Activation] = list()
         self.processing = False
         self.counter = 0
         self.querying_rules = True
@@ -39,7 +53,7 @@ class KnowledgeBase:
         '''
         Add new sentence (rule or fact) to the knowledge base.
         '''
-        tree = sef.grammar.parse(s)
+        tree = self.grammar.parse(s)
         if tree.expr.name == 'rule':
             for child_node in tree.children:
                 if child_node.expr.name == 'conds':
@@ -73,7 +87,7 @@ class KnowledgeBase:
         self.sset.backtracks = []
         paths = fact.get_all_paths()
         matching = Matching(origin=fact)
-        self.sset.propagate(paths, matching)
+        self.sset.propagate(list(paths), matching)
         fulfillments = []
         for bt in self.sset.backtracks:
             conds = [c.substitute(bt.matching, self) for c in
@@ -114,23 +128,18 @@ class KnowledgeBase:
         logger.debug(f'adding fact "{fact}" to rete')
         paths = fact.get_leaf_paths()
         matching = Matching(origin=fact)
-        self.dset.propagate(paths, matching)
+        self.dset.propagate(list(paths), matching)
 
     def _new_rule_activation(self, act : Activation):
         rule = cast(Rule, act.precedent)
         conds = [c.substitute(act.matching, self) for c in
                 rule.conditions if c != act.condition]
-        to_query : List[Fact] = []
-        if len(conds) > 1:
-            to_query = conds[1]
-            conds = [conds[0] + conds[1]] + conds[2:]
         new_conds = tuple(tuple(cs) for cs in conds)
         cons = tuple(c.substitute(act.matching, self) for c in rule.consecuences)
         new_rule = Rule(new_conds, cons)
         self.dset.add_rule(new_rule)
-        if len(new_conds) == 1:
-            self.sset.add_rule(new_rule)
-        for cond in to_query:
+        self.sset.add_rule(new_rule)
+        for cond in conds:
             answers = self.ask(cond)
             for a in cast(List[Matching], answers):
                 act = Activation(new_rule, a, cond, True)
@@ -142,10 +151,10 @@ class KnowledgeBase:
         acts = [Activation(c) for c in cons]
         self.activations.extend(acts)
 
-    def _new_rule(self, act):
+    def _new_rule(self, act : Activation):
         rule = act.precedent
-        for cond in rule.conditions:
-            answers = self.ask(cond)
+        for cond in cast(Rule, rule).conditions:
+            answers = self.fset.ask_fact(cond)
             for a in answers:
                 act = Activation(rule, a, cond, True)
                 self.activations.append(act)
