@@ -3,11 +3,12 @@ import setuptools
 
 version = '0.1.0a11'
 
-install_requires = [x for x in
-    open(os.path.join(here, 'requirements.txt')).read().split('\n')
-    if len(x) > 0]
+with open("requirements.txt", "r") as fh:
+    install_requires = [x for x in fh.read().split('\n') if len(x) > 0]
 
-
+with open("test_requirements.txt", "r") as fh:
+    testing_extras = [x for x in fh.read().split('\n')
+                      if len(x) > 0 and not x.startswith('-')]
 
 with open("README.rst", "r") as fh:
     long_description = fh.read()
@@ -30,5 +31,8 @@ setuptools.setup(
     packages=setuptools.find_packages('src'),
     package_dir={'':'src'},
     install_requires=install_requires,
+    extras_require={
+        'testing': testing_extras,
+    },
     include_package_data=True
 )
