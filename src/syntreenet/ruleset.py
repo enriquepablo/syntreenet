@@ -25,7 +25,6 @@ from typing import List, Dict, Union, Tuple, Any, Optional, Union, cast
 
 from .grammar import Segment, Fact, Path, Matching
 from .factset import FactSet
-from .logging import logger
 
 
 @dataclass(frozen=True)
@@ -85,7 +84,7 @@ class EndNode(ChildNode, End):
             real_matching = matching.get_real_matching(varmap)
             activation = Activation(rule, real_matching, condition,
                                     self.kb.querying_rules)
-            self.kb.add_activation(activation)
+            self.kb.activations.append(activation)
 
 
 @dataclass
@@ -115,7 +114,7 @@ class ParentNode:
 
             if self.var_child is not None:
                 new_path = path.get_subpath(self.var_child.path)
-                new_paths = new_path.paths_after(paths)
+                new_paths = new_path.paths_after(paths, try_to_see=False)
                 child_var = self.var_child.path.value
                 new_matching = matching.setitem(child_var, new_path.value)
                 self.var_child.propagate(new_paths, new_matching)
@@ -199,7 +198,6 @@ class RuleSet(ParentNode, ChildNode):
     def add_rule(self, rule : Rule):
         '''
         '''
-        logger.info(f'adding rule "{rule}"')
         for con in self.get_cons(rule):
             varmap, paths = con.normalize(self.kb)
             node, visited_vars, paths_left = self.follow_paths(paths)

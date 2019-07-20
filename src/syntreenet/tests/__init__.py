@@ -16,3 +16,23 @@
 # You should have received a copy of the GNU General Public License
 # along with any part of the terms project.
 # If not, see <http://www.gnu.org/licenses/>.
+
+
+import os
+from unittest import TestCase
+from syntreenet.kbase import KnowledgeBase
+from parsimonious.grammar  import Grammar
+
+
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+class GrammarTestCase(TestCase):
+
+    grammar_file = ''
+
+    def setUp(self):
+        fn = os.path.join(HERE, '../../grammars', self.grammar_file)
+        with open(fn, 'r') as fh:
+            self.kb = KnowledgeBase(fh.read())
+            self.grammar = self.kb.grammar

@@ -29,6 +29,7 @@ from .ruleset import CondSet, ConsSet, Activation, Rule
 from .logging import logger
 
 from parsimonious.grammar import Grammar
+from parsimonious.nodes import Node
 
 
 EMPTY_MATCHING : Matching = Matching()
@@ -49,11 +50,14 @@ class KnowledgeBase:
         self.counter = 0
         self.querying_rules = True
 
+    def parse(self, s : str) -> Node:
+        return self.grammar.parse(s).children[0]
+
     def tell(self, s : str):
         '''
         Add new sentence (rule or fact) to the knowledge base.
         '''
-        tree = self.grammar.parse(s)
+        tree = self.parse(s)
         if tree.expr.name == 'rule':
             for child_node in tree.children:
                 if child_node.expr.name == 'conds':
@@ -70,18 +74,23 @@ class KnowledgeBase:
         self.activations.append(activation)
         self.process()
 
-    def ask(self, q : Fact) -> Union[List[Matching], bool]:
-        '''
-        Check whether a fact exists in the knowledge base, or, if it contains
-        variables, find all the variable assigments that correspond to facts
-        that exist in the knowledge base.
-        '''
-        response = self.fset.ask_fact(q)
+    def query(self, q : str) -> Union[List[Matching], bool]:
+        tree = self.parse(q)
+        qf = Fact.from_parse_tree(tree)
+        response = self.ask(qf)
         if not response:
             return False
         if len(response) == 1 and not response[0].mapping:
             return True
         return response
+
+    def ask(self, q : Fact) -> List[Matching]:
+        '''
+        Check whether a fact exists in the knowledge base, or, if it contains
+        variables, find all the variable assigments that correspond to facts
+        that exist in the knowledge base.
+        '''
+        return self.fset.ask_fact(q)
 
     def query_goal(self, fact : Fact) -> list:
         self.sset.backtracks = []
@@ -125,7 +134,6 @@ class KnowledgeBase:
         This method is the entry to the algorithm that checks for conditions
         that match a new fact being added to the knowledge base. 
         '''
-        logger.debug(f'adding fact "{fact}" to rete')
         paths = fact.get_leaf_paths()
         matching = Matching(origin=fact)
         self.dset.propagate(list(paths), matching)
@@ -134,7 +142,7 @@ class KnowledgeBase:
         rule = cast(Rule, act.precedent)
         conds = [c.substitute(act.matching, self) for c in
                 rule.conditions if c != act.condition]
-        new_conds = tuple(tuple(cs) for cs in conds)
+        new_conds = tuple(conds)
         cons = tuple(c.substitute(act.matching, self) for c in rule.consecuences)
         new_rule = Rule(new_conds, cons)
         self.dset.add_rule(new_rule)
@@ -177,7 +185,8 @@ class KnowledgeBase:
                         self._add_fact(s)
                         self.fset.add_fact(s)
                 elif isinstance(s, Rule):
-                    if len(s.conditions) > 1:
+                    if len(s.conditions) > 1 or act.condition is EMPTY_FACT:
+                        logger.info(f'adding rule "{s}"')
                         self._new_rule_activation(act)
                         if self.querying_rules:
                             self._new_rule(act)

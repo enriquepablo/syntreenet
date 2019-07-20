@@ -31,17 +31,17 @@ from parsimonious.expressions import Expression
 class Segment:
     '''
     '''
-    expr : Expression
     text : str
+    expr : Expression
     start : int = 0
     end : int = 0
     leaf : bool = False
     identity_tuple : tuple = field(init=False)
 
     def __post_init__(self):
-        self.identity_tuple = (self.expr.name, self.text)
+        object.__setattr__(self, 'identity_tuple', (self.expr.name, self.text))
         if self.end == 0:
-            self.end = len(self.text)
+            object.__setattr__(self, 'end', len(self.text))
 
     def __str__(self) -> str:
         return self.text
@@ -52,7 +52,7 @@ class Segment:
     def __hash__(self) -> int:
         return hash(self.identity_tuple)
 
-    def __equals__(self, other : Segment) -> bool:
+    def __eq__(self, other : Segment) -> bool:
         return self.identity_tuple == other.identity_tuple
 
     def is_var(self) -> bool:
@@ -90,12 +90,13 @@ class Path:
     deep_identity_tuple : tuple = field(init=False)
 
     def __post_init__(self):
-        self.identity_tuple = (tuple(s.expr.name for s in self.segments) +
-                                (self.segments[-1].text,))
-        self.deep_identity_tuple = tuple(hash(s.expr) for s in self.segments)
+        i = tuple(s.expr.name for s in self.segments) + (self.segments[-1].text,)
+        object.__setattr__(self, 'identity_tuple', i)
+        object.__setattr__(self, 'deep_identity_tuple',
+                           tuple(hash(s.expr) for s in self.segments))
 
     def __str__(self) -> str:
-        return ' -> '.join([str(s) for s in self.segments])
+        return ' -> '.join([f'"{s}"' for s in self.segments])
 
     def __repr__(self) -> str:
         return f'<Path: {str(self)}>'
@@ -106,7 +107,7 @@ class Path:
     def __len__(self) -> int:
         return len(self.segments)
 
-    def __equals__(self, other : Path) -> bool:
+    def __eq__(self, other : Path) -> bool:
         return self.identity_tuple == other.identity_tuple
 
     def __getitem__(self, key : int) -> Segment:
@@ -127,7 +128,7 @@ class Path:
 
     def can_be_var(self) -> bool:
         v = self[-1]
-        return v.is_var() or v.expr.name.startswith('v_')
+        return v.expr.name.startswith('v_')
 
     def is_leaf(self) -> bool:
         '''
@@ -142,13 +143,13 @@ class Path:
             return True
         return False
 
-    def paths_after(self, paths : List[Path]) -> List[Path]:
+    def paths_after(self, paths : List[Path], try_to_see : bool = True) -> List[Path]:
         seen = False
         new_paths = []
         for p in paths:
-            if not seen and p.starts_with(self):
+            if try_to_see and not seen and p.starts_with(self):
                 seen = True
-            elif seen and not p.starts_with(self):
+            elif (not try_to_see or seen) and not p.starts_with(self):
                 new_paths.append(p)
         return new_paths
 
@@ -166,28 +167,29 @@ class Path:
             new_segment = segment.substitute(matching)
             new_segments.append(new_segment)
             if segment != new_segment:
-                offset = new_segment.end - segment.end
                 old_path = Path(tuple(new_segments[:-1]) + (segment,))
                 break
         else:
             return self, None
-        
+
         real_new_segments = []
-        prev = new_segments[-1]
+        value = new_prev = new_segment
+        prev = segment
         for segment in new_segments[-2::-1]:
             text = (segment.text[:prev.start] +
-                    prev.text +
+                    new_prev.text +
                     segment.text[prev.end:])
-            end = segment.end + offset
+            end = segment.start + len(text)
             new_segment = Segment(text, segment.expr, segment.start, end, False)
             real_new_segments.append(new_segment)
+            new_prev = new_segment
             prev = segment
         
-        segments = tuple(real_new_segments[-1::-1]) + (prev,)
+        segments = tuple(real_new_segments[-1::-1]) + (value,)
         return Path(segments), old_path
 
     @staticmethod
-    def substitute_paths(paths, matching: Matching) -> List[Path]:
+    def substitute_paths(paths : List[Path], matching: Matching) -> List[Path]:
         '''
         '''
         new_paths = []
@@ -239,9 +241,9 @@ class Fact:
             end = node.end - cast(Segment, parent).start
         except AttributeError:  # node is root node
             start, end = 0, len(text)
-        segment = Segment(expr, text, start, end, not bool(node.children))
+        segment = Segment(text, expr, start, end, not bool(node.children))
         path = root_path + (segment,)
-        if segment.can_be_var():
+        if (path[-1].leaf or path[-1].can_be_var()) and bool(path[-1].text.strip()):
             all_paths.append(path)
         for child in node.children:
             cls._visit_pnode(child, path, all_paths, parent=node)
@@ -252,7 +254,7 @@ class Fact:
         syntagms given as keys in the matching has been replaced with the
         syntagm given as value for the key in the matching.
         '''
-        new_paths = Path.substitute_paths(copy(self.paths), matching)
+        new_paths = Path.substitute_paths(list(self.paths), matching)
         strfact = ''.join([p.value.text for p in new_paths])
         tree = kb.parse(strfact)
         return self.from_parse_tree(tree)

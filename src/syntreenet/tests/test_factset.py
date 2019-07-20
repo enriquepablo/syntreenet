@@ -1,0 +1,64 @@
+# Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
+#
+# This file is part of the syntreenet project.
+# https://syntree.net
+#
+# The syntreenet project is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The syntreenet project is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with any part of the terms project.
+# If not, see <http://www.gnu.org/licenses/>.
+
+import syntreenet.grammar as g
+from . import GrammarTestCase
+
+
+class BoldTextTests(GrammarTestCase):
+    grammar_file = 'bold-text.peg'
+
+    def test_fact(self):
+        tree = self.kb.parse('((ho ho))')
+        f = g.Fact.from_parse_tree(tree)
+        self.kb.fset.add_fact(f)
+        resp = self.kb.fset.ask_fact(f)
+        self.assertTrue(resp)
+
+    def test_other_fact(self):
+        tree1 = self.kb.parse('((ho ho))')
+        f1 = g.Fact.from_parse_tree(tree1)
+        tree2 = self.kb.parse('((hi hi))')
+        f2 = g.Fact.from_parse_tree(tree2)
+        self.kb.fset.add_fact(f1)
+        resp = self.kb.fset.ask_fact(f2)
+        self.assertFalse(resp)
+
+    def test_other_fact_italic(self):
+        tree1 = self.kb.parse('((ho ho))')
+        f1 = g.Fact.from_parse_tree(tree1)
+        tree2 = self.kb.parse("''ho ho''")
+        f2 = g.Fact.from_parse_tree(tree2)
+        self.kb.fset.add_fact(f1)
+        resp = self.kb.fset.ask_fact(f2)
+        self.assertFalse(resp)
+
+    def test_query_fact(self):
+        tree1 = self.kb.parse('((ho ho))')
+        f1 = g.Fact.from_parse_tree(tree1)
+        tree2 = self.kb.parse('((X1))')
+        f2 = g.Fact.from_parse_tree(tree2)
+
+        self.kb.fset.add_fact(f1)
+        resp = self.kb.fset.ask_fact(f2)
+
+        val = f1.paths[1].value
+        var = f2.paths[1].value
+
+        self.assertEquals(resp[0][var], val)

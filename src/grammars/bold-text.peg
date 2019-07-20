@@ -1,0 +1,19 @@
+sentence    = rule / fact
+
+rule        = r_open conds arrow conss r_close
+conds       = fact+
+conss       = fact+
+arrow       = ws? "->" ws?
+r_open      = "{{"
+r_close     = "}}"
+
+fact        = bold_text / italic_text
+bold_text   = ws? bold_open text bold_close ws?
+italic_text = ws? quotes text quotes ws?
+text        = v_text / var
+v_text      = ~"[a-z 0-9]+"
+var         = ~"_*X[0-9]+"
+bold_open   = "(("
+bold_close  = "))"
+quotes      = "''"
+ws          = ~"\s*"

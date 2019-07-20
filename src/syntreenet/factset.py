@@ -24,8 +24,6 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 
 from .grammar import Segment, Fact, Path, Matching
-from .util import get_parents
-from .logging import logger
 
 
 @dataclass
@@ -108,7 +106,6 @@ class BaseSSNode:
             self._response_append(matching)
 
     def _response_append(self, matching : Matching):
-        logger.debug(f'answer with {matching.mapping}')
         if self.parent is None:
             self.response.append(matching)
         else:
@@ -149,7 +146,6 @@ class FactSet(BaseSSNode):
         '''
         Add a new fact to the set.
         '''
-        logger.debug(f'adding fact {fact} to fset')
         paths = fact.get_all_paths()
         self.follow_paths(list(paths))
 

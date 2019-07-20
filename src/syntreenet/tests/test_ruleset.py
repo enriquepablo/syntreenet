@@ -16,3 +16,16 @@
 # You should have received a copy of the GNU General Public License
 # along with any part of the terms project.
 # If not, see <http://www.gnu.org/licenses/>.
+
+import syntreenet.grammar as g
+from . import GrammarTestCase
+
+
+class BoldTextTests(GrammarTestCase):
+    grammar_file = 'bold-text.peg'
+
+    def test_rule(self):
+        self.kb.tell("{{((X1)) -> ''uu''}}")
+        self.kb.tell('((ho ho))')
+        resp = self.kb.query("''uu''")
+        self.assertTrue(resp)
