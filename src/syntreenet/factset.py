@@ -147,7 +147,7 @@ class FactSet(BaseSSNode):
         Add a new fact to the set.
         '''
         paths = fact.get_all_paths()
-        self.follow_paths(list(paths))
+        self.follow_paths(paths)
 
     def ask_fact(self, fact : Fact) -> List[Matching]:
         '''
@@ -160,5 +160,5 @@ class FactSet(BaseSSNode):
         self.response = []
         paths = fact.get_leaf_paths()
         matching = Matching(origin=fact)
-        self.query_paths(list(paths), matching, self.kb)
+        self.query_paths(paths, matching, self.kb)
         return self.response

@@ -97,7 +97,7 @@ class KnowledgeBase:
         self.sset.backtracks = []
         paths = fact.get_all_paths()
         matching = Matching(origin=fact)
-        self.sset.propagate(list(paths), matching)
+        self.sset.propagate(paths, matching)
         fulfillments = []
         for bt in self.sset.backtracks:
             conds = [c.substitute(bt.matching, self) for c in
@@ -137,7 +137,7 @@ class KnowledgeBase:
         '''
         paths = fact.get_leaf_paths()
         matching = Matching(origin=fact)
-        self.dset.propagate(list(paths), matching)
+        self.dset.propagate(paths, matching)
 
     def _new_rule_activation(self, act : Activation):
         rule = cast(Rule, act.precedent)

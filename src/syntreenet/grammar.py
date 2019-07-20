@@ -218,11 +218,11 @@ class Fact:
     def __str__(self):
         return self.text
 
-    def get_all_paths(self) -> tuple:
-        return copy(self.paths)
+    def get_all_paths(self) -> List[Path]:
+        return list(self.paths)
 
-    def get_leaf_paths(self) -> tuple:
-        return tuple(p for p in self.paths if p.is_leaf())
+    def get_leaf_paths(self) -> List[Path]:
+        return list(p for p in self.paths if p.is_leaf())
 
     @classmethod
     def from_parse_tree(cls, tree : Node) -> Fact:
