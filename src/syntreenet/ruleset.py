@@ -204,7 +204,7 @@ class RuleSet(ParentNode, ChildNode):
             node = self.create_paths(node, paths_left, visited_vars)
             if node.endnode is None:
                 node.endnode = EndNode(parent=node, kb=self.kb)
-            rulestr = str(rule)
+            rulestr = str(rule) + str(varmap) + str(con)
             if rulestr not in node.endnode.continuations:
                 node.endnode.continuations[rulestr] = (con, varmap, rule)
 

@@ -49,7 +49,13 @@ class ClassesTests(GrammarTestCase):
 
     def test_simple_rule(self):
         self.kb.tell("X1 is X2 ; X2 is X3 -> X1 is X3")
+        self.kb.tell("X1 isa X2 ; X2 is X3 -> X1 isa X3")
         self.kb.tell('animal is thing')
         self.kb.tell('human is animal')
+        self.kb.tell('susan isa human')
         resp = self.kb.query("human is thing")
         self.assertTrue(resp)
+        resp = self.kb.query("susan isa thing")
+        self.assertTrue(resp)
+        resp = self.kb.query("human isa thing")
+        self.assertFalse(resp)

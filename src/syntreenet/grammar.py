@@ -93,7 +93,7 @@ class Path:
         i = tuple(s.expr.name for s in self.segments) + (self.segments[-1].text,)
         object.__setattr__(self, 'identity_tuple', i)
         object.__setattr__(self, 'deep_identity_tuple',
-                           tuple(hash(s.expr) for s in self.segments))
+                           tuple(hash(s) for s in self.segments))
 
     def __str__(self) -> str:
         return ' -> '.join(self.identity_tuple)
