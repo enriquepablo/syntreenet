@@ -1,8 +1,8 @@
 sentence    = rule / fact
 
 rule        = r_open conds arrow conss r_close
-conds       = fact+
-conss       = fact+
+conds       = (fact ws?)+
+conss       = (fact ws?)+
 arrow       = ws? "->" ws?
 r_open      = "{{"
 r_close     = "}}"

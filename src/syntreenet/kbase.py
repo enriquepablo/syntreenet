@@ -62,9 +62,9 @@ class KnowledgeBase:
         if tree.expr.name == 'rule':
             for child_node in tree.children:
                 if child_node.expr.name == 'conds':
-                    cond_nodes = child_node.children
+                    cond_nodes = [ch.children[0] for ch in child_node.children]
                 elif child_node.expr.name == 'conss':
-                    cons_nodes = child_node.children
+                    cons_nodes = [ch.children[0] for ch in child_node.children]
             conds = tuple(Fact.from_parse_tree(c) for c in cond_nodes)
             conss = tuple(Fact.from_parse_tree(c) for c in cons_nodes)
             rule = Rule(conds, conss)

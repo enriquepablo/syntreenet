@@ -1,11 +1,11 @@
 sentence    = rule / fact
 
 rule        = conds arrow conss
-conds       = fact+
-conss       = fact+
+conds       = (fact ws? sc? ws?)+
+conss       = (fact ws? sc? ws?)+
 arrow       = ws? "->" ws?
 
-fact        = word " " pred " " word ws? sc? ws?
+fact        = word " " pred " " word
 pred        = isa / is
 isa         = "isa"
 is          = "is"
