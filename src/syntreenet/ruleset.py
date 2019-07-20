@@ -63,6 +63,12 @@ class End:
     continuations : Dict[str, Tuple[Fact, Matching, Rule]] = field(default_factory=dict)
 
 
+def get_root(node):
+    while node.parent is not None:
+        node = node.parent
+    return node
+
+
 @dataclass
 class EndNode(ChildNode, End):
     '''
@@ -80,11 +86,12 @@ class EndNode(ChildNode, End):
     def add_matching(self, matching : Matching):
         '''
         '''
+        root = get_root(self)
         for condition, varmap, rule in self.continuations.values():
             real_matching = matching.get_real_matching(varmap)
             activation = Activation(rule, real_matching, condition,
                                     self.kb.querying_rules)
-            self.kb.activations.append(activation)
+            root.add_activation(activation)
 
 
 @dataclass
@@ -221,7 +228,7 @@ class CondSet(RuleSet):
         return rule.conditions
 
     def add_activation(self, act):
-        self.kb.activations.append(activation)
+        self.kb.activations.append(act)
 
 
 @dataclass
@@ -232,4 +239,4 @@ class ConsSet(RuleSet):
         return rule.consecuences
 
     def add_activation(self, act):
-        self.backtracks.append(activation)
+        self.backtracks.append(act)

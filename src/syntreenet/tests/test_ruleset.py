@@ -58,4 +58,4 @@ class ClassesTests(GrammarTestCase):
         resp = self.kb.query("susan isa thing")
         self.assertTrue(resp)
         resp = self.kb.goal("human isa thing")
-        self.assertFalse(resp)
+        self.assertEquals(len(resp), 3)

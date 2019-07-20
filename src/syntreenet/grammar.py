@@ -218,6 +218,9 @@ class Fact:
     def __str__(self):
         return self.text
 
+    def __repr__(self):
+        return f'<Fact <{self.text}>'
+
     def get_all_paths(self) -> List[Path]:
         return list(p for p in self.paths if bool(p[-1].text.strip()))
 

@@ -115,29 +115,19 @@ class KnowledgeBase:
                     cast(Rule, bt.precedent).conditions]
             needed = []
             known = []
-            for cs in conds:
-                for cond in cs:
-                    answers = self.ask(cond)
-                    if answers is False:
-                        needed.append(cond)
-                    elif not answers is True:
-                        known.append(answers)
-            if known:
-                preresults = []
-                results = known[0]
-                for more in known[1:]:
-                    for p in cast(List[Matching], results):
-                        for a in cast(List[Matching], more):
-                            try:
-                                preresults.append(p.merge(a))
-                            except ValueError:
-                                pass
-                    results = preresults
-                    preresults = []
-                needed = [[n.substitute(m, self) for n in cast(List[Fact], needed)]
-                        for m in cast(List[Matching], results)]
+            for cond in conds:
+                answers = self.ask(cond)
+                if not answers:
+                    needed.append(cond)
+                else:
+                    known.append(answers)
 
-            fulfillments.append(needed)
+            for answs in known:
+                for a in answs:
+                    newf = list(n.substitute(a, self) for n in needed)
+                    fulfillments.append(newf)
+            if not known:
+                fulfillments.append(needed)
         return fulfillments
 
 
