@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from copy import copy
 from dataclasses import dataclass, field
-from typing import List, Dict, Union, Tuple, Any, Optional, Union, cast
+from typing import List, Set, Union, cast
 
 from .grammar import Segment, Path, Fact, Matching
 from .factset import FactSet
@@ -49,7 +49,7 @@ class KnowledgeBase:
         self.processing = False
         self.counter = 0
         self.querying_rules = True
-        self.seen_rules = set()
+        self.seen_rules : Set[str] = set()
 
     def parse(self, s : str) -> Node:
         return self.grammar.parse(s).children[0]
@@ -99,9 +99,14 @@ class KnowledgeBase:
         '''
         return self.fset.ask_fact(q)
 
+    def goal(self, q : str) -> list:
+        tree = self.parse(q)
+        qf = Fact.from_parse_tree(tree)
+        return self.query_goal(qf)
+
     def query_goal(self, fact : Fact) -> list:
         self.sset.backtracks = []
-        paths = fact.get_all_paths()
+        paths = fact.get_leaf_paths()
         matching = Matching(origin=fact)
         self.sset.propagate(paths, matching)
         fulfillments = []
@@ -145,7 +150,7 @@ class KnowledgeBase:
         matching = Matching(origin=fact)
         self.dset.propagate(paths, matching)
 
-    def _new_rule_activation(self, act : Activation):
+    def _new_rule_activation(self, act : Activation) -> Rule:
         rule = cast(Rule, act.precedent)
         conds = [c.substitute(act.matching, self) for c in
                 rule.conditions if c != act.condition]

@@ -52,7 +52,7 @@ class Segment:
     def __hash__(self) -> int:
         return hash(self.identity_tuple)
 
-    def __eq__(self, other : Segment) -> bool:
+    def __eq__(self, other) -> bool:
         return self.identity_tuple == other.identity_tuple
 
     def is_var(self) -> bool:
@@ -107,7 +107,7 @@ class Path:
     def __len__(self) -> int:
         return len(self.segments)
 
-    def __eq__(self, other : Path) -> bool:
+    def __eq__(self, other) -> bool:
         return self.identity_tuple == other.identity_tuple
 
     def __getitem__(self, key : int) -> Segment:
@@ -196,8 +196,8 @@ class Path:
         old_paths : List[Path] = []
         while paths:
             path = paths.pop(0)
-            for old_path in old_paths:
-                if path.starts_with(old_path):
+            for opath in old_paths:
+                if path.starts_with(opath):
                     break
             else:
                 new_path, old_path = path.substitute(matching) 
@@ -276,7 +276,7 @@ class Fact:
                     counter += 1
                     varmap = varmap.setitem(path.value, new_var)
         new_fact = self.substitute(varmap, kb)
-        return varmap.invert(), new_fact.get_leaf_paths()
+        return varmap.invert(), tuple(new_fact.get_leaf_paths())
 
 
 @dataclass(frozen=True)
