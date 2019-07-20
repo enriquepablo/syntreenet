@@ -96,10 +96,10 @@ class Path:
                            tuple(hash(s.expr) for s in self.segments))
 
     def __str__(self) -> str:
-        return ' -> '.join([f'"{s}"' for s in self.segments])
+        return ' -> '.join(self.identity_tuple)
 
     def __repr__(self) -> str:
-        return f'<Path: {str(self)}>'
+        return f'<Path: {self}>'
 
     def __hash__(self) -> int:
         return hash(self.identity_tuple)
@@ -214,6 +214,9 @@ class Fact:
     '''
     text : str
     paths : tuple = field(default_factory=tuple)
+
+    def __str__(self):
+        return self.text
 
     def get_all_paths(self) -> tuple:
         return copy(self.paths)

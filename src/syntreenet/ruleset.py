@@ -36,8 +36,8 @@ class Rule:
     consecuences : tuple = field(default_factory=tuple)
 
     def __str__(self) -> str:
-        conds = '; '.join([str(c) for c in self.conditions])
-        cons = '; '.join([str(c) for c in self.consecuences])
+        conds = ' '.join([str(c) for c in self.conditions])
+        cons = ' '.join([str(c) for c in self.consecuences])
         return f'{conds} -> {cons}'
 
 
@@ -60,7 +60,7 @@ class Activation:
 
 @dataclass
 class End:
-    continuations : List[Tuple[Fact, Matching, Rule]] = field(default_factory=list)
+    continuations : Dict[str, Tuple[Fact, Matching, Rule]] = field(default_factory=dict)
 
 
 @dataclass
@@ -80,7 +80,7 @@ class EndNode(ChildNode, End):
     def add_matching(self, matching : Matching):
         '''
         '''
-        for condition, varmap, rule in self.continuations:
+        for condition, varmap, rule in self.continuations.values():
             real_matching = matching.get_real_matching(varmap)
             activation = Activation(rule, real_matching, condition,
                                     self.kb.querying_rules)
@@ -204,7 +204,9 @@ class RuleSet(ParentNode, ChildNode):
             node = self.create_paths(node, paths_left, visited_vars)
             if node.endnode is None:
                 node.endnode = EndNode(parent=node, kb=self.kb)
-            node.endnode.continuations.append((con, varmap, rule))
+            rulestr = str(rule)
+            if rulestr not in node.endnode.continuations:
+                node.endnode.continuations[rulestr] = (con, varmap, rule)
 
     def get_cons(self, rule : Rule) -> tuple:
         raise NotImplementedError()

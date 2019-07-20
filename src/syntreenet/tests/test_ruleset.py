@@ -24,8 +24,21 @@ from . import GrammarTestCase
 class BoldTextTests(GrammarTestCase):
     grammar_file = 'bold-text.peg'
 
-    def test_rule(self):
+    def test_simple_rule(self):
         self.kb.tell("{{((X1)) -> ''uu''}}")
         self.kb.tell('((ho ho))')
         resp = self.kb.query("''uu''")
+        self.assertTrue(resp)
+
+    def test_simple_rule_2(self):
+        self.kb.tell("{{((X1)) -> ''X1''}}")
+        self.kb.tell('((ho ho))')
+        resp = self.kb.query("''ho ho''")
+        self.assertTrue(resp)
+
+    def test_simple_rule_3(self):
+        self.kb.tell("{{((X1)) ''X2'' -> ''X1'' ((X2))}}")
+        self.kb.tell('((ho ho))')
+        self.kb.tell("''hi hi''")
+        resp = self.kb.query("((hi hi))")
         self.assertTrue(resp)

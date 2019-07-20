@@ -49,6 +49,7 @@ class KnowledgeBase:
         self.processing = False
         self.counter = 0
         self.querying_rules = True
+        self.seen_rules = set()
 
     def parse(self, s : str) -> Node:
         return self.grammar.parse(s).children[0]
@@ -147,11 +148,7 @@ class KnowledgeBase:
         new_rule = Rule(new_conds, cons)
         self.dset.add_rule(new_rule)
         self.sset.add_rule(new_rule)
-        for cond in conds:
-            answers = self.ask(cond)
-            for a in cast(List[Matching], answers):
-                act = Activation(new_rule, a, cond, True)
-                self.activations.append(act)
+        return new_rule
 
     def _new_fact_activations(self, act : Activation):
         rule = cast(Rule, act.precedent)
@@ -164,6 +161,10 @@ class KnowledgeBase:
         for cond in cast(Rule, rule).conditions:
             answers = self.fset.ask_fact(cond)
             for a in answers:
+                rulestr = str(rule) + str(a)
+                if rulestr in self.seen_rules:
+                    continue
+                self.seen_rules.add(rulestr)
                 act = Activation(rule, a, cond, True)
                 self.activations.append(act)
 
@@ -174,6 +175,7 @@ class KnowledgeBase:
         '''
         if not self.processing:
             self.processing = True
+            self.seen_rules = set()
             while self.activations:
                 act = self.activations.pop(0)
                 self.querying_rules = act.query_rules
@@ -186,8 +188,8 @@ class KnowledgeBase:
                         self.fset.add_fact(s)
                 elif isinstance(s, Rule):
                     if len(s.conditions) > 1 or act.condition is EMPTY_FACT:
-                        logger.info(f'adding rule "{s}"')
-                        self._new_rule_activation(act)
+                        new_rule = self._new_rule_activation(act)
+                        logger.info(f'adding rule "{new_rule}"')
                         if self.querying_rules:
                             self._new_rule(act)
                     else:
