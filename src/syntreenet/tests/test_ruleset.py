@@ -42,3 +42,14 @@ class BoldTextTests(GrammarTestCase):
         self.kb.tell("''hi hi''")
         resp = self.kb.query("((hi hi))")
         self.assertTrue(resp)
+
+
+class ClassesTests(GrammarTestCase):
+    grammar_file = 'classes.peg'
+
+    def test_simple_rule(self):
+        self.kb.tell("X1 is X2; X2 is X3 -> X1 is X3")
+        self.kb.tell('animal is thing')
+        self.kb.tell('human is animal')
+        resp = self.kb.query("human is thing")
+        self.assertTrue(resp)

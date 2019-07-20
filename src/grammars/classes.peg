@@ -1,0 +1,16 @@
+sentence    = rule / fact
+
+rule        = conds arrow conss
+conds       = fact+
+conss       = fact+
+arrow       = ws? "->" ws?
+
+fact        = word ws? pred ws? word ws? sc? ws?
+pred        = isa / is
+isa         = "isa"
+is          = "is"
+word        = v_word / var
+v_word      = ~"[a-z0-9]+"
+var         = ~"_*X[0-9]+"
+ws          = ~"\s*"
+sc          = ";"
