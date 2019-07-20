@@ -38,36 +38,36 @@ class BoldTextTests(GrammarTestCase):
         tree2 = self.kb.parse('((X1))')
         f2 = g.Fact.from_parse_tree(tree2)
 
-        self.assertEquals(f1.paths[0][0].text, '((ho ho))')
-        self.assertEquals(f1.paths[0][0].expr.name, 'fact')
-        self.assertEquals(f1.paths[0].value.text, '((')
-        self.assertEquals(f1.paths[0].value.expr.name, 'bold_open')
-        self.assertEquals(f1.paths[0].is_leaf(), True)
-        self.assertEquals(f1.paths[0].can_be_var(), False)
-        self.assertEquals(f1.paths[0].is_var(), False)
+        self.assertEquals(f1.get_all_paths()[0][0].text, '((ho ho))')
+        self.assertEquals(f1.get_all_paths()[0][0].expr.name, 'fact')
+        self.assertEquals(f1.get_all_paths()[0].value.text, '((')
+        self.assertEquals(f1.get_all_paths()[0].value.expr.name, 'bold_open')
+        self.assertEquals(f1.get_all_paths()[0].is_leaf(), True)
+        self.assertEquals(f1.get_all_paths()[0].can_be_var(), False)
+        self.assertEquals(f1.get_all_paths()[0].is_var(), False)
 
-        self.assertEquals(f1.paths[1][0].text, '((ho ho))')
-        self.assertEquals(f1.paths[1][0].expr.name, 'fact')
-        self.assertEquals(f1.paths[1].value.text, 'ho ho')
-        self.assertEquals(f1.paths[1].value.expr.name, 'v_text')
-        self.assertEquals(f1.paths[1].is_leaf(), True)
-        self.assertEquals(f1.paths[1].can_be_var(), True)
-        self.assertEquals(f1.paths[1].is_var(), False)
+        self.assertEquals(f1.get_all_paths()[1][0].text, '((ho ho))')
+        self.assertEquals(f1.get_all_paths()[1][0].expr.name, 'fact')
+        self.assertEquals(f1.get_all_paths()[1].value.text, 'ho ho')
+        self.assertEquals(f1.get_all_paths()[1].value.expr.name, 'v_text')
+        self.assertEquals(f1.get_all_paths()[1].is_leaf(), True)
+        self.assertEquals(f1.get_all_paths()[1].can_be_var(), True)
+        self.assertEquals(f1.get_all_paths()[1].is_var(), False)
 
-        self.assertEquals(f1.paths[2][0].text, '((ho ho))')
-        self.assertEquals(f1.paths[2][0].expr.name, 'fact')
-        self.assertEquals(f1.paths[2].value.text, '))')
-        self.assertEquals(f1.paths[2].value.expr.name, 'bold_close')
-        self.assertEquals(f1.paths[2].is_leaf(), True)
-        self.assertEquals(f1.paths[2].can_be_var(), False)
-        self.assertEquals(f1.paths[2].is_var(), False)
+        self.assertEquals(f1.get_all_paths()[2][0].text, '((ho ho))')
+        self.assertEquals(f1.get_all_paths()[2][0].expr.name, 'fact')
+        self.assertEquals(f1.get_all_paths()[2].value.text, '))')
+        self.assertEquals(f1.get_all_paths()[2].value.expr.name, 'bold_close')
+        self.assertEquals(f1.get_all_paths()[2].is_leaf(), True)
+        self.assertEquals(f1.get_all_paths()[2].can_be_var(), False)
+        self.assertEquals(f1.get_all_paths()[2].is_var(), False)
 
-        self.assertEquals(f2.paths[1].value.text, 'X1')
-        self.assertEquals(f2.paths[1].is_var(), True)
+        self.assertEquals(f2.get_all_paths()[1].value.text, 'X1')
+        self.assertEquals(f2.get_all_paths()[1].is_var(), True)
 
-        self.assertEquals(f1.paths[0], f2.paths[0])
-        self.assertNotEqual(f1.paths[1], f2.paths[1])
-        self.assertEquals(f1.paths[2], f2.paths[2])
+        self.assertEquals(f1.get_all_paths()[0], f2.get_all_paths()[0])
+        self.assertNotEqual(f1.get_all_paths()[1], f2.get_all_paths()[1])
+        self.assertEquals(f1.get_all_paths()[2], f2.get_all_paths()[2])
 
     def test_substitute_path(self):
         tree1 = self.kb.parse('((ho ho))')
@@ -75,10 +75,10 @@ class BoldTextTests(GrammarTestCase):
         tree2 = self.kb.parse('((X1))')
         f2 = g.Fact.from_parse_tree(tree2)
 
-        val_path = f1.paths[1]
+        val_path = f1.get_all_paths()[1]
         self.assertEquals(val_path.is_var(), False)
 
-        var_path = f2.paths[1]
+        var_path = f2.get_all_paths()[1]
         self.assertEquals(var_path.is_var(), True)
 
         matching = g.Matching(((var_path.value, val_path.value),))
@@ -96,10 +96,10 @@ class BoldTextTests(GrammarTestCase):
         tree2 = self.kb.parse('((X1))')
         f2 = g.Fact.from_parse_tree(tree2)
 
-        val = f1.paths[1].value
+        val = f1.get_all_paths()[1].value
         self.assertEquals(val.text, 'hi hi')
 
-        var = f2.paths[1].value
+        var = f2.get_all_paths()[1].value
         self.assertEquals(var.text, 'X1')
 
         matching = g.Matching(((var, val),))
@@ -108,8 +108,8 @@ class BoldTextTests(GrammarTestCase):
 
         self.assertTrue(f3 == f1)
 
-        orig_dit = f1.paths[1].deep_identity_tuple
-        subs_dit = f3.paths[1].deep_identity_tuple
+        orig_dit = f1.get_all_paths()[1].deep_identity_tuple
+        subs_dit = f3.get_all_paths()[1].deep_identity_tuple
 
         self.assertTrue(orig_dit == subs_dit)
 
@@ -119,4 +119,4 @@ class BoldTextTests(GrammarTestCase):
 
         paths = f.normalize(self.kb)
 
-        self.assertTrue(f.paths[1].value.text, '__X1')
+        self.assertTrue(f.get_all_paths()[1].value.text, '__X1')

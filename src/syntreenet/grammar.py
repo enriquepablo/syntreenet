@@ -219,10 +219,10 @@ class Fact:
         return self.text
 
     def get_all_paths(self) -> List[Path]:
-        return list(self.paths)
+        return list(p for p in self.paths if bool(p[-1].text.strip()))
 
     def get_leaf_paths(self) -> List[Path]:
-        return list(p for p in self.paths if p.is_leaf())
+        return list(p for p in self.paths if p.is_leaf() and bool(p[-1].text.strip()))
 
     @classmethod
     def from_parse_tree(cls, tree : Node) -> Fact:
@@ -246,7 +246,7 @@ class Fact:
             start, end = 0, len(text)
         segment = Segment(text, expr, start, end, not bool(node.children))
         path = root_path + (segment,)
-        if (path[-1].leaf or path[-1].can_be_var()) and bool(path[-1].text.strip()):
+        if path[-1].leaf or path[-1].can_be_var():
             all_paths.append(path)
         for child in node.children:
             cls._visit_pnode(child, path, all_paths, parent=node)
@@ -265,13 +265,6 @@ class Fact:
 
     def normalize(self, kb : Any) -> Tuple[Matching, tuple]:
         '''
-        When the condition of a rule is added to the network, the variables it
-        carries are replaced by standard variables, so that all conditions deal
-        with the same variables. The 1st variable in the condition will be
-        called __X1, the 2nd __X2, etc.
-        The method will return the paths of the normalized condition, along
-        with a matching representing all the variable replacements that have
-        been done.
         '''
         varmap = Matching(origin=self)
         counter = 1
@@ -283,7 +276,7 @@ class Fact:
                     counter += 1
                     varmap = varmap.setitem(path.value, new_var)
         new_fact = self.substitute(varmap, kb)
-        return varmap.invert(), new_fact.paths
+        return varmap.invert(), new_fact.get_leaf_paths()
 
 
 @dataclass(frozen=True)

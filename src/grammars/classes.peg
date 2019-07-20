@@ -5,7 +5,7 @@ conds       = fact+
 conss       = fact+
 arrow       = ws? "->" ws?
 
-fact        = word " " pred " " word sc? ws?
+fact        = word " " pred " " word ws? sc? ws?
 pred        = isa / is
 isa         = "isa"
 is          = "is"

@@ -58,7 +58,7 @@ class BoldTextTests(GrammarTestCase):
         self.kb.fset.add_fact(f1)
         resp = self.kb.fset.ask_fact(f2)
 
-        val = f1.paths[1].value
-        var = f2.paths[1].value
+        val = f1.get_all_paths()[1].value
+        var = f2.get_all_paths()[1].value
 
         self.assertEquals(resp[0][var], val)
