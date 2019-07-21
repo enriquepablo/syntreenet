@@ -1,0 +1,23 @@
+sentence    = rule / fact
+
+rule        = conds arrow conss
+conds       = (fact ws? sc? ws?)+
+conss       = (fact ws? sc? ws?)+
+arrow       = ws? "->" ws?
+
+fact        = v_fact
+v_fact      = lpar pair+ rpar
+pair        = key assign value ws? comma? ws?
+
+v_key       = key / var
+key         = word
+value       = v_value / v_fact / var
+v_value     = word
+word        = ~r"[a-z][-\w]+"
+var         = ~"_*X[0-9]+"
+assign      = ws? ":" ws?
+lpar        = "("
+rpar        = ")"
+comma       = ws? "," ws?
+sc          = ws? ";" ws?
+ws          = ~"\s*"
