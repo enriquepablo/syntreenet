@@ -61,3 +61,23 @@ class ClassesTests(GrammarTestCase):
         self.assertFalse(resp)
         resp = self.kb.goal("human isa thing")
         self.assertEquals(len(resp), 3)
+
+
+class PairsTests(GrammarTestCase):
+    grammar_file = 'pairs.peg'
+
+    def test_simple_rule(self):
+        self.kb.tell('''(es : (salutation : X1) , en : (salutation : X2)) ; \
+                        (person : (name : X3)) \
+                        -> \
+                        (greeting : (es : (greeting : X1 , to : X3) , \
+                                     en : (greeting : X2 , to : X3))) \
+        ''')
+        self.kb.tell('(es : (salutation : hola) , en : (salutation : hello))')
+        self.kb.tell('(person : (name : susan))')
+        resp = self.kb.query("(greeting : (es : (greeting : hola , to : susan) , \
+                                     en : (greeting : hello , to : susan)))")
+        self.assertTrue(resp)
+
+
+

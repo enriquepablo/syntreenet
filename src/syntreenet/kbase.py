@@ -40,7 +40,9 @@ class KnowledgeBase:
     The object that contains both the graph of rules (or the tree of
     conditions) and the graph of facts.
     '''
-    def __init__(self, grammar_text : str, backend : str = 'parsimonious'):
+    def __init__(self, grammar_text : str,
+                 can_be_var_test : Optional[callable] = None,
+                 backend : str = 'parsimonious'):
         self.grammar = Grammar(grammar_text)
         self.fset = FactSet(kb=self)
         self.dset = CondSet(kb=self)
@@ -50,9 +52,13 @@ class KnowledgeBase:
         self.counter = 0
         self.querying_rules = True
         self.seen_rules : Set[str] = set()
+        if can_be_var_test is None:
+            can_be_var_test = lambda x: x[-1].expr.name.startswith('v_')
+        self.can_be_var_test = can_be_var_test
 
     def parse(self, s : str) -> Node:
-        return self.grammar.parse(s).children[0]
+        tree = self.grammar.parse(s)
+        return tree.children[0]
 
     def tell(self, s : str):
         '''
@@ -71,19 +77,19 @@ class KnowledgeBase:
                         cons_nodes = child_node.children
                     else:
                         cons_nodes = [ch.children[0] for ch in child_node.children]
-            conds = tuple(Fact.from_parse_tree(c) for c in cond_nodes)
-            conss = tuple(Fact.from_parse_tree(c) for c in cons_nodes)
+            conds = tuple(self.from_parse_tree(c) for c in cond_nodes)
+            conss = tuple(self.from_parse_tree(c) for c in cons_nodes)
             rule = Rule(conds, conss)
             activation = Activation(rule, EMPTY_MATCHING, EMPTY_FACT, True)
         elif tree.expr.name == 'fact':
-            fact = Fact.from_parse_tree(tree)
+            fact = self.from_parse_tree(tree)
             activation = Activation(fact, query_rules=False)
         self.activations.append(activation)
         self.process()
 
     def query(self, q : str) -> Union[List[Matching], bool]:
         tree = self.parse(q)
-        qf = Fact.from_parse_tree(tree)
+        qf = self.from_parse_tree(tree)
         response = self.ask(qf)
         if not response:
             return False
@@ -101,7 +107,7 @@ class KnowledgeBase:
 
     def goal(self, q : str) -> list:
         tree = self.parse(q)
-        qf = Fact.from_parse_tree(tree)
+        qf = self.from_parse_tree(tree)
         return self.query_goal(qf)
 
     def query_goal(self, fact : Fact) -> list:
@@ -197,3 +203,28 @@ class KnowledgeBase:
                         self._new_fact_activations(act)
 
             self.processing = False
+
+    def from_parse_tree(self, tree : Node) -> Fact:
+        '''
+        Build fact from a list of paths.
+        '''
+        segment_tuples : List[tuple] = []
+        self._visit_pnode(tree, (), segment_tuples)
+        paths = tuple(Path(s) for s in segment_tuples)
+        return Fact(tree.text, paths)
+
+    def _visit_pnode(self, node : Node, root_path : tuple,
+            all_paths : List[tuple], parent : Node = None):
+        expr = node.expr
+        text = node.full_text[node.start: node.end]
+        try:
+            start = node.start - cast(Segment, parent).start
+            end = node.end - cast(Segment, parent).start
+        except AttributeError:  # node is root node
+            start, end = 0, len(text)
+        segment = Segment(text, expr, start, end, not bool(node.children))
+        path = root_path + (segment,)
+        if path[-1].leaf or self.can_be_var_test(path):
+            all_paths.append(path)
+        for child in node.children:
+            self._visit_pnode(child, path, all_paths, parent=node)

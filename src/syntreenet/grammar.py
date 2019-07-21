@@ -61,9 +61,6 @@ class Segment:
         '''
         return self.expr.name == 'var'
 
-    def can_be_var(self) -> bool:
-        return self.expr.name == 'var' or self.expr.name.startswith('v_')
-
     def substitute(self, matching : Matching) -> Segment:
         matched = matching.get(self)
         if matched is not None:
@@ -125,10 +122,6 @@ class Path:
         Return whether the last segment is a var
         '''
         return self.segments[-1].is_var()
-
-    def can_be_var(self) -> bool:
-        v = self[-1]
-        return v.expr.name.startswith('v_')
 
     def is_leaf(self) -> bool:
         '''
@@ -227,33 +220,6 @@ class Fact:
     def get_leaf_paths(self) -> List[Path]:
         return list(p for p in self.paths if p.is_leaf() and bool(p[-1].text.strip()))
 
-    @classmethod
-    def from_parse_tree(cls, tree : Node) -> Fact:
-        '''
-        Build fact from a list of paths.
-        '''
-        segment_tuples : List[tuple] = []
-        cls._visit_pnode(tree, (), segment_tuples)
-        paths = tuple(Path(s) for s in segment_tuples)
-        return cls(tree.text, paths)
-
-    @classmethod
-    def _visit_pnode(cls, node : Node, root_path : tuple,
-            all_paths : List[tuple], parent : Node = None):
-        expr = node.expr
-        text = node.full_text[node.start: node.end]
-        try:
-            start = node.start - cast(Segment, parent).start
-            end = node.end - cast(Segment, parent).start
-        except AttributeError:  # node is root node
-            start, end = 0, len(text)
-        segment = Segment(text, expr, start, end, not bool(node.children))
-        path = root_path + (segment,)
-        if path[-1].leaf or path[-1].can_be_var():
-            all_paths.append(path)
-        for child in node.children:
-            cls._visit_pnode(child, path, all_paths, parent=node)
-
     def substitute(self, matching: Matching, kb) -> Fact:
         '''
         Return a new fact, copy of self, where every appearance of the
@@ -263,7 +229,7 @@ class Fact:
         new_paths = Path.substitute_paths(list(self.paths), matching)
         strfact = ''.join([p.value.text for p in new_paths])
         tree = kb.parse(strfact)
-        return self.from_parse_tree(tree)
+        return kb.from_parse_tree(tree)
 
 
     def normalize(self, kb : Any) -> Tuple[Matching, tuple]:

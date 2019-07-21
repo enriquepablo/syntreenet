@@ -38,27 +38,27 @@ class BaseSSNode:
     nonlogic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
     response : List[Matching] = field(default_factory=list)
 
-    def follow_paths(self, paths : List[Path]):
+    def follow_paths(self, paths : List[Path], kb : Any):
         '''
         Used while adding new facts, to find the sequence of already
         existing nodes that correpond to its list of paths.
         '''
         parent = self
         for i, path in enumerate(paths):
-            if path.can_be_var():
+            if kb.can_be_var_test(path):
                 node = parent.logic_children.get(path)
                 if node and not path.is_leaf():
                     new_paths = path.paths_after(paths)
-                    node.follow_paths(new_paths)
+                    node.follow_paths(new_paths, kb)
                     continue
             else:
                 node = self.nonlogic_children.get(path)
             if node is None:
-                parent._create_paths(paths[i:])
+                parent._create_paths(paths[i:], kb)
                 return
             parent = node
 
-    def _create_paths(self, paths : List[Path]):
+    def _create_paths(self, paths : List[Path], kb : Any):
         '''
         Used while adding new facts, to create the sequence of
         nodes that correpond to its list of paths and did not exist previously.
@@ -68,11 +68,11 @@ class BaseSSNode:
             new_node = SSNode(path=path,
                               var=path.is_var(),
                               parent=parent)
-            if path.can_be_var():
+            if kb.can_be_var_test(path):
                 parent.logic_children[path] = new_node
                 if not path.is_leaf():
                     new_paths = path.paths_after(paths)
-                    new_node._create_paths(new_paths)
+                    new_node._create_paths(new_paths, kb)
                     continue
             else:
                 parent.nonlogic_children[path] = new_node
@@ -147,7 +147,7 @@ class FactSet(BaseSSNode):
         Add a new fact to the set.
         '''
         paths = fact.get_all_paths()
-        self.follow_paths(paths)
+        self.follow_paths(paths, self.kb)
 
     def ask_fact(self, fact : Fact) -> List[Matching]:
         '''
