@@ -1,2 +1,2 @@
 include *.rst *.cfg *.txt
-include grammars/*.peg
+include src/grammars/*.peg
