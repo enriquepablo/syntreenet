@@ -60,11 +60,12 @@ class ClassesTests(GrammarTestCase):
         resp = self.kb.query("human isa thing")
         self.assertFalse(resp)
         resp = self.kb.goal("human isa thing")
-        self.assertEquals(len(resp), 3)
+        self.assertEquals(len(resp), 4)
 
 
 class PairsTests(GrammarTestCase):
     grammar_file = 'pairs.peg'
+    can_be_var_expr = '^(word|fact)$'
 
     def test_simple_rule(self):
         self.kb.tell('''(es : (salutation : X1) , en : (salutation : X2)) ; \

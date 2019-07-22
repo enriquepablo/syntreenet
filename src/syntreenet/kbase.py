@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import re
 from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Set, Union, cast
@@ -41,7 +42,7 @@ class KnowledgeBase:
     conditions) and the graph of facts.
     '''
     def __init__(self, grammar_text : str,
-                 can_be_var_test : Optional[callable] = None,
+                 can_be_var_expr : str = '^v_',
                  backend : str = 'parsimonious'):
         self.grammar = Grammar(grammar_text)
         self.fset = FactSet(kb=self)
@@ -52,13 +53,14 @@ class KnowledgeBase:
         self.counter = 0
         self.querying_rules = True
         self.seen_rules : Set[str] = set()
-        if can_be_var_test is None:
-            can_be_var_test = lambda x: x[-1].expr.name.startswith('v_')
-        self.can_be_var_test = can_be_var_test
+        self.can_be_var_expr = re.compile(can_be_var_expr)
 
     def parse(self, s : str) -> Node:
         tree = self.grammar.parse(s)
         return tree.children[0]
+
+    def can_be_var(self, path):
+        return bool(self.can_be_var_expr.match(path[-1].expr.name))
 
     def tell(self, s : str):
         '''
@@ -224,7 +226,7 @@ class KnowledgeBase:
             start, end = 0, len(text)
         segment = Segment(text, expr, start, end, not bool(node.children))
         path = root_path + (segment,)
-        if path[-1].leaf or self.can_be_var_test(path):
+        if path[-1].leaf or self.can_be_var(path):
             all_paths.append(path)
         for child in node.children:
             self._visit_pnode(child, path, all_paths, parent=node)

@@ -66,6 +66,7 @@ class BoldTextTests(GrammarTestCase):
 
 class PairsTests(GrammarTestCase):
     grammar_file = 'pairs.peg'
+    can_be_var_expr = '^(word|fact)$'
 
     def test_fact(self):
         tree = self.kb.parse('(hola : adios, hello : bye)')
@@ -98,3 +99,75 @@ class PairsTests(GrammarTestCase):
         self.kb.fset.add_fact(f1)
         resp = self.kb.fset.ask_fact(f2)
         self.assertFalse(resp)
+
+    def test_nested_fact_with_var(self):
+        tree1 = self.kb.parse('(es : (hola : adios), en : (hello : bye))')
+        f1 = self.kb.from_parse_tree(tree1)
+        tree2 = self.kb.parse('(es : (hola : adios), en : (hello : X1))')
+        f2 = self.kb.from_parse_tree(tree2)
+        self.kb.fset.add_fact(f1)
+        resp = self.kb.fset.ask_fact(f2)
+        self.assertEquals(resp[0].mapping[0][0].text, 'X1')
+        self.assertEquals(resp[0].mapping[0][1].text, 'bye')
+
+    def test_nested_fact_with_2_vars(self):
+        tree1 = self.kb.parse('(es : (hola : adios), en : (hello : bye))')
+        f1 = self.kb.from_parse_tree(tree1)
+        tree2 = self.kb.parse('(es : (hola : X1), en : (hello : X2))')
+        f2 = self.kb.from_parse_tree(tree2)
+        self.kb.fset.add_fact(f1)
+        resp = self.kb.fset.ask_fact(f2)
+        self.assertEquals(resp[0].mapping[0][0].text, 'X1')
+        self.assertEquals(resp[0].mapping[0][1].text, 'adios')
+        self.assertEquals(resp[0].mapping[1][0].text, 'X2')
+        self.assertEquals(resp[0].mapping[1][1].text, 'bye')
+
+    def test_nested_fact_with_nonterminal_var(self):
+        tree1 = self.kb.parse('(es : (hola : adios), en : (hello : bye))')
+        f1 = self.kb.from_parse_tree(tree1)
+        tree2 = self.kb.parse('(es : (hola : adios), en : X1)')
+        f2 = self.kb.from_parse_tree(tree2)
+        self.kb.fset.add_fact(f1)
+        resp = self.kb.fset.ask_fact(f2)
+        self.assertEquals(resp[0].mapping[0][0].text, 'X1')
+        self.assertEquals(resp[0].mapping[0][1].text, '(hello : bye)')
+
+    def test_nested_fact_with_2_nonterminal_vars(self):
+        tree1 = self.kb.parse('(es : (hola : adios), en : (hello : bye))')
+        f1 = self.kb.from_parse_tree(tree1)
+        tree2 = self.kb.parse('(es : X1, en : X2)')
+        f2 = self.kb.from_parse_tree(tree2)
+        self.kb.fset.add_fact(f1)
+        resp = self.kb.fset.ask_fact(f2)
+        self.assertEquals(resp[0].mapping[0][0].text, 'X1')
+        self.assertEquals(resp[0].mapping[0][1].text, '(hola : adios)')
+        self.assertEquals(resp[0].mapping[1][0].text, 'X2')
+        self.assertEquals(resp[0].mapping[1][1].text, '(hello : bye)')
+
+    def test_nested_facts_with_2_nonterminal_vars(self):
+        tree1 = self.kb.parse('(es : (hola : adios), en : (hello : bye))')
+        f1 = self.kb.from_parse_tree(tree1)
+        tree2 = self.kb.parse('(es : (hola : adios), en : (hullo : gbye))')
+        f2 = self.kb.from_parse_tree(tree2)
+        self.kb.fset.add_fact(f1)
+        self.kb.fset.add_fact(f2)
+        tree3 = self.kb.parse('(es : X1, en : X2)')
+        f3 = self.kb.from_parse_tree(tree3)
+        resp = self.kb.fset.ask_fact(f3)
+        self.assertEquals(resp[0].mapping[0][0].text, 'X1')
+        self.assertEquals(resp[0].mapping[0][1].text, '(hola : adios)')
+        self.assertEquals(resp[0].mapping[1][0].text, 'X2')
+        self.assertEquals(resp[0].mapping[1][1].text, '(hello : bye)')
+
+        self.assertEquals(resp[1].mapping[1][0].text, 'X2')
+        self.assertEquals(resp[1].mapping[1][1].text, '(hullo : gbye)')
+
+    def test_nested_fact_with_repeated_var(self):
+        tree1 = self.kb.parse('(es : (hola : adios), en : (hello : adios))')
+        f1 = self.kb.from_parse_tree(tree1)
+        tree2 = self.kb.parse('(es : (hola : X1), en : (hello : X1))')
+        f2 = self.kb.from_parse_tree(tree2)
+        self.kb.fset.add_fact(f1)
+        resp = self.kb.fset.ask_fact(f2)
+        self.assertEquals(resp[0].mapping[0][0].text, 'X1')
+        self.assertEquals(resp[0].mapping[0][1].text, 'adios')

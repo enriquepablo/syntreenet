@@ -36,7 +36,6 @@ class BaseSSNode:
     parent : Optional[BaseSSNode] = None
     logic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
     nonlogic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
-    response : List[Matching] = field(default_factory=list)
 
     def follow_paths(self, paths : List[Path], kb : Any):
         '''
@@ -45,14 +44,17 @@ class BaseSSNode:
         '''
         parent = self
         for i, path in enumerate(paths):
-            if kb.can_be_var_test(path):
+            if kb.can_be_var(path):
                 node = parent.logic_children.get(path)
-                if node and not path.is_leaf():
+                if not path.is_leaf():
                     new_paths = path.paths_after(paths)
-                    node.follow_paths(new_paths, kb)
+                    if node:
+                        node.follow_paths(new_paths, kb)
+                    else:
+                        parent._create_paths([path] + new_paths, kb)
                     continue
             else:
-                node = self.nonlogic_children.get(path)
+                node = parent.nonlogic_children.get(path)
             if node is None:
                 parent._create_paths(paths[i:], kb)
                 return
@@ -68,7 +70,7 @@ class BaseSSNode:
             new_node = SSNode(path=path,
                               var=path.is_var(),
                               parent=parent)
-            if kb.can_be_var_test(path):
+            if kb.can_be_var(path):
                 parent.logic_children[path] = new_node
                 if not path.is_leaf():
                     new_paths = path.paths_after(paths)
@@ -92,13 +94,14 @@ class BaseSSNode:
                     for child in self.logic_children.values():
                         new_matching = matching.setitem(syn, child.path.value)
                         child.query_paths(copy(paths), new_matching, kb)
-                        return
+                    return
                 else:
-                    path, _ = path.substitute(matching) 
+                    path, _ = path.substitute(matching)
 
-            next_node = self.nonlogic_children.get(path)
-            if not next_node:
+            if kb.can_be_var(path):
                 next_node = self.logic_children.get(path)
+            else:
+                next_node = self.nonlogic_children.get(path)
             if next_node:
                 next_node.query_paths(paths, matching, kb)
 
@@ -138,6 +141,7 @@ class FactSet(BaseSSNode):
     A set of facts arranged in a tree structure that facilitates queries.
     '''
     kb : Any = None
+    response : List[Matching] = field(default_factory=list)
 
     def __str__(self) -> str:
         return 'fset'

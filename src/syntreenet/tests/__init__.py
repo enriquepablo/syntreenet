@@ -30,9 +30,10 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 class GrammarTestCase(TestCase):
 
     grammar_file = ''
+    can_be_var_expr = '^v_'
 
     def setUp(self):
         fn = os.path.join(HERE, '../../grammars', self.grammar_file)
         with open(fn, 'r') as fh:
-            self.kb = KnowledgeBase(fh.read())
+            self.kb = KnowledgeBase(fh.read(), self.can_be_var_expr)
             self.grammar = self.kb.grammar
