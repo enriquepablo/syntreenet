@@ -290,16 +290,6 @@ class Matching:
                 return v
         return None
 
-    def getkey(self, value : Segment) -> Optional[Segment]:
-        '''
-        Return the key corresponding to the provided value, or None if the
-        value is not present.
-        '''
-        for k, v in self.mapping:
-            if value == v:
-                return k
-        return None
-
     def setitem(self, key : Segment, value : Segment) -> Matching:
         '''
         Return a new Matching, copy of self, with the addition (or the
@@ -316,17 +306,6 @@ class Matching:
         if not spent:
             mapping.append((key, value))
         mapping_tuple = tuple(mapping)
-        return Matching(mapping_tuple, self.origin)
-
-    def merge(self, other : Matching) -> Matching:
-        '''
-        '''
-        nextmap = dict(self.mapping)
-        for k, v in other.mapping:
-            if k in nextmap and v != nextmap[k]:
-                raise ValueError(f'Merge error {self} and {other}')
-            nextmap[k] = v
-        mapping_tuple = tuple((k, v) for k, v in nextmap.items())
         return Matching(mapping_tuple, self.origin)
 
     def invert(self) -> Matching:

@@ -88,3 +88,12 @@ class PairsTests(GrammarTestCase):
         self.kb.tell('(wants : she , what : (thing : every , when : always))')
         resp = self.kb.query("(gets : she , what : (thing : every , when : always))")
         self.assertTrue(resp)
+
+    def test_simple_rule_3(self):
+        self.kb.tell('''(wants : X1 , what : X2 , for : X1) \
+                        -> \
+                        (gets : X1 , what : X2) \
+        ''')
+        self.kb.tell('(wants : she , what : (thing : every , when : always), for : she)')
+        resp = self.kb.query("(gets : she , what : (thing : every , when : always))")
+        self.assertTrue(resp)

@@ -115,7 +115,7 @@ class ParentNode:
             for vchild in self.var_children:
                 new_path = path.get_subpath(vchild.path)
                 if new_path.value == matching[vchild.path.value]:
-                    new_paths = new_path.paths_after(paths)
+                    new_paths = new_path.paths_after(paths, try_to_see=False)
                     vchild.propagate(new_paths, matching.copy())
                     break
 
