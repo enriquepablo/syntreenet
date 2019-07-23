@@ -44,7 +44,7 @@ class BaseSSNode:
         '''
         parent = self
         for i, path in enumerate(paths):
-            if kb.can_be_var(path):
+            if kb.in_var_range(path):
                 node = parent.logic_children.get(path)
                 if not path.is_leaf():
                     new_paths = path.paths_after(paths)
@@ -70,7 +70,7 @@ class BaseSSNode:
             new_node = SSNode(path=path,
                               var=path.is_var(),
                               parent=parent)
-            if kb.can_be_var(path):
+            if kb.in_var_range(path):
                 parent.logic_children[path] = new_node
                 if not path.is_leaf():
                     new_paths = path.paths_after(paths)
@@ -98,7 +98,7 @@ class BaseSSNode:
                 else:
                     path, _ = path.substitute(matching)
 
-            if kb.can_be_var(path):
+            if kb.in_var_range(path):
                 next_node = self.logic_children.get(path)
             else:
                 next_node = self.nonlogic_children.get(path)

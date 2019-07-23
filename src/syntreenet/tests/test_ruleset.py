@@ -25,19 +25,19 @@ class BoldTextTests(GrammarTestCase):
     grammar_file = 'bold-text.peg'
 
     def test_simple_rule(self):
-        self.kb.tell("{{((X1)) -> ''uu''}}")
+        self.kb.tell("((X1)) -> ''uu''")
         self.kb.tell('((ho ho))')
         resp = self.kb.query("''uu''")
         self.assertTrue(resp)
 
     def test_simple_rule_2(self):
-        self.kb.tell("{{((X1)) -> ''X1''}}")
+        self.kb.tell("((X1)) -> ''X1''")
         self.kb.tell('((ho ho))')
         resp = self.kb.query("''ho ho''")
         self.assertTrue(resp)
 
     def test_simple_rule_3(self):
-        self.kb.tell("{{((X1)) ''X2'' -> ''X1'' ((X2))}}")
+        self.kb.tell("((X1)) ''X2'' -> ''X1'' ((X2))")
         self.kb.tell('((ho ho))')
         self.kb.tell("''hi hi''")
         resp = self.kb.query("((hi hi))")
@@ -65,7 +65,7 @@ class ClassesTests(GrammarTestCase):
 
 class PairsTests(GrammarTestCase):
     grammar_file = 'pairs.peg'
-    can_be_var_expr = '^(word|fact)$'
+    var_range_expr = '^(word|fact)$'
 
     def test_simple_rule(self):
         self.kb.tell('''(es : (salutation : X1) , en : (salutation : X2)) ; \
@@ -104,3 +104,30 @@ class PairsTests(GrammarTestCase):
         self.assertTrue(resp)
         resp = self.kb.query("(puts : she , what : (thing : every , when : always))")
         self.assertTrue(resp)
+
+
+
+'''
+person is thing
+document is thing
+context is thing
+placed isa verb
+action isa verb
+permission is thing
+role is thing
+has-role isa verb
+has-permission isa verb
+want isa verb
+status is thing
+has-status isa verb
+
+
+person want action document
+person has-role in context
+role has-permission
+document has-status
+document placed in context
+permission protects action for status
+->
+action document
+'''

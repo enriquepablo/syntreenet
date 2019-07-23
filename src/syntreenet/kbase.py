@@ -36,15 +36,33 @@ from parsimonious.nodes import Node
 EMPTY_MATCHING : Matching = Matching()
 EMPTY_FACT : Fact = Fact('')
 
+COMMON_RULES = '''
+        __sentence__    = __rule__ / {fact}
+        __rule__        = __conds__ __arrow__ __conss__
+        __conds__       = ({fact} __ws__? __sc__? __ws__?)+
+        __conss__       = ({fact} __ws__? __sc__? __ws__?)+
+        __arrow__       = __ws__? "->" __ws__?
+        __var__         = {var_pat}
+        __ws__          = ~"\s*"
+        __sc__          = {fact_sep}
+'''
+
 class KnowledgeBase:
     '''
     The object that contains both the graph of rules (or the tree of
     conditions) and the graph of facts.
     '''
     def __init__(self, grammar_text : str,
-                 can_be_var_expr : str = '^v_',
+                 fact_rule : str = 'fact',
+                 var_range_expr : str = '^v_',
+                 var_pat : str = '~"_*X[0-9]+"',
+                 fact_sep : str = '";"',
                  backend : str = 'parsimonious'):
-        self.grammar = Grammar(grammar_text)
+        common = COMMON_RULES.format(fact=fact_rule,
+                                     fact_sep=fact_sep, 
+                                     var_pat=var_pat)
+        self.grammar_text = f"{common}\n{grammar_text}"
+        self.grammar = Grammar(self.grammar_text)
         self.fset = FactSet(kb=self)
         self.dset = CondSet(kb=self)
         self.sset = ConsSet(kb=self)
@@ -53,31 +71,32 @@ class KnowledgeBase:
         self.counter = 0
         self.querying_rules = True
         self.seen_rules : Set[str] = set()
-        self.can_be_var_expr = re.compile(can_be_var_expr)
+        self.fact_rule : str = fact_rule
+        self.var_range_expr = re.compile(var_range_expr)
 
     def parse(self, s : str) -> Node:
         tree = self.grammar.parse(s)
         return tree.children[0]
 
-    def can_be_var(self, path):
-        return bool(self.can_be_var_expr.match(path[-1].expr.name))
+    def in_var_range(self, path):
+        return bool(self.var_range_expr.match(path[-1].expr.name))
 
     def tell(self, s : str):
         '''
         Add new sentence (rule or fact) to the knowledge base.
         '''
         tree = self.parse(s)
-        if tree.expr.name == 'rule':
+        if tree.expr.name == '__rule__':
             for child_node in tree.children:
-                if child_node.expr.name == 'conds':
+                if child_node.expr.name == '__conds__':
                     cond_nodes = [ch.children[0] for ch in child_node.children]
-                elif child_node.expr.name == 'conss':
+                elif child_node.expr.name == '__conss__':
                     cons_nodes = [ch.children[0] for ch in child_node.children]
             conds = tuple(self.from_parse_tree(c) for c in cond_nodes)
             conss = tuple(self.from_parse_tree(c) for c in cons_nodes)
             rule = Rule(conds, conss)
             activation = Activation(rule, EMPTY_MATCHING, EMPTY_FACT, True)
-        elif tree.expr.name == 'fact':
+        elif tree.expr.name == self.fact_rule:
             fact = self.from_parse_tree(tree)
             activation = Activation(fact, query_rules=False)
         self.activations.append(activation)
@@ -220,7 +239,7 @@ class KnowledgeBase:
             start, end = 0, len(text)
         segment = Segment(text, expr, start, end, not bool(node.children))
         path = root_path + (segment,)
-        if path[-1].leaf or self.can_be_var(path):
+        if path[-1].leaf or self.in_var_range(path):
             all_paths.append(path)
         for child in node.children:
             self._visit_pnode(child, path, all_paths, parent=node)

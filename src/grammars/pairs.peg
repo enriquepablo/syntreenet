@@ -1,17 +1,10 @@
-sentence    = rule / fact
-
-rule        = conds arrow conss
-conds       = (fact ws? sc? ws?)+
-conss       = (fact ws? sc? ws?)+
-arrow       = ws? "->" ws?
 
 fact        = lpar pair+ rpar
 pair        = key assign value ws? comma? ws?
 
 key         = word
-value       = word / fact / var
+value       = word / fact / __var__
 word        = ~r"[a-z][-\w]+"
-var         = ~"_*X[0-9]+"
 assign      = ws? ":" ws?
 lpar        = "("
 rpar        = ")"

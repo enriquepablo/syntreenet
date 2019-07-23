@@ -66,7 +66,7 @@ class BoldTextTests(GrammarTestCase):
 
 class PairsTests(GrammarTestCase):
     grammar_file = 'pairs.peg'
-    can_be_var_expr = '^(word|fact)$'
+    var_range_expr = '^(word|fact)$'
 
     def test_fact(self):
         tree = self.kb.parse('(hola : adios, hello : bye)')

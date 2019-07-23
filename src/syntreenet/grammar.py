@@ -59,7 +59,7 @@ class Segment:
         '''
         Whether the segment represents a variable.
         '''
-        return self.expr.name == 'var'
+        return self.expr.name == '__var__'
 
     def substitute(self, matching : Matching) -> Segment:
         matched = matching.get(self)
@@ -74,7 +74,7 @@ class Segment:
 
 def make_var(n : int) -> Segment:
     text = f'__X{n}'
-    expr = Expression(name='var')
+    expr = Expression(name='__var__')
     return Segment(text, expr)
 
 
@@ -222,9 +222,6 @@ class Fact:
 
     def substitute(self, matching: Matching, kb) -> Fact:
         '''
-        Return a new fact, copy of self, where every appearance of the
-        syntagms given as keys in the matching has been replaced with the
-        syntagm given as value for the key in the matching.
         '''
         new_paths = Path.substitute_paths(list(self.paths), matching)
         strfact = ''.join([p.value.text for p in new_paths])

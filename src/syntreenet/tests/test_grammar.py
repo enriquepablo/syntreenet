@@ -43,7 +43,7 @@ class BoldTextTests(GrammarTestCase):
         self.assertEquals(f1.get_all_paths()[0].value.text, '((')
         self.assertEquals(f1.get_all_paths()[0].value.expr.name, 'bold_open')
         self.assertEquals(f1.get_all_paths()[0].is_leaf(), True)
-        self.assertEquals(self.kb.can_be_var(f1.get_all_paths()[0]), False)
+        self.assertEquals(self.kb.in_var_range(f1.get_all_paths()[0]), False)
         self.assertEquals(f1.get_all_paths()[0].is_var(), False)
 
         self.assertEquals(f1.get_all_paths()[1][0].text, '((ho ho))')
@@ -51,7 +51,7 @@ class BoldTextTests(GrammarTestCase):
         self.assertEquals(f1.get_all_paths()[1].value.text, 'ho ho')
         self.assertEquals(f1.get_all_paths()[1].value.expr.name, 'v_text')
         self.assertEquals(f1.get_all_paths()[1].is_leaf(), True)
-        self.assertEquals(self.kb.can_be_var(f1.get_all_paths()[1]), True)
+        self.assertEquals(self.kb.in_var_range(f1.get_all_paths()[1]), True)
         self.assertEquals(f1.get_all_paths()[1].is_var(), False)
 
         self.assertEquals(f1.get_all_paths()[2][0].text, '((ho ho))')
@@ -59,7 +59,7 @@ class BoldTextTests(GrammarTestCase):
         self.assertEquals(f1.get_all_paths()[2].value.text, '))')
         self.assertEquals(f1.get_all_paths()[2].value.expr.name, 'bold_close')
         self.assertEquals(f1.get_all_paths()[2].is_leaf(), True)
-        self.assertEquals(self.kb.can_be_var(f1.get_all_paths()[2]), False)
+        self.assertEquals(self.kb.in_var_range(f1.get_all_paths()[2]), False)
         self.assertEquals(f1.get_all_paths()[2].is_var(), False)
 
         self.assertEquals(f2.get_all_paths()[1].value.text, 'X1')

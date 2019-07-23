@@ -1,16 +1,9 @@
-sentence    = rule / fact
-
-rule        = conds arrow conss
-conds       = (fact ws? sc? ws?)+
-conss       = (fact ws? sc? ws?)+
-arrow       = ws? "->" ws?
 
 fact        = word " " pred " " word
 pred        = isa / is
 isa         = "isa"
 is          = "is"
-word        = v_word / var
+word        = v_word / __var__
 v_word      = ~"[a-z0-9]+"
-var         = ~"_*X[0-9]+"
 ws          = ~"\s*"
 sc          = ";"
