@@ -37,6 +37,15 @@ class BaseSSNode:
     logic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
     nonlogic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
 
+    def get_fact_leaf(self, fact : Fact) -> Optional[SSNode]:
+        parent = self
+        for i, path in enumerate(paths):
+            node = parent.nonlogic_children.get(path)
+            if node is None:
+                return
+            parent = node
+        return parent
+
     def follow_paths(self, paths : List[Path], kb : Any):
         '''
         Used while adding new facts, to find the sequence of already
@@ -155,14 +164,22 @@ class FactSet(BaseSSNode):
 
     def ask_fact(self, fact : Fact) -> List[Matching]:
         '''
-        Query a fact, possibly with variables. If the query matches no
-        facts, the return value will be False. If the query matches
-        facts, the return value will consist on all the assignments of the
-        variables in the query that correspond to a fact in the set - or
-        True if there are no variables.
         '''
         self.response = []
         paths = fact.get_leaf_paths()
         matching = Matching(origin=fact)
         self.query_paths(paths, matching, self.kb)
         return self.response
+
+    def rm_fact(self, fact : Fact):
+        '''
+        '''
+        paths = fact.get_leaf_paths()
+        leaf = self.get_fact_leaf(paths)
+        while True:
+            parent = leaf.parent
+            del parent[leaf.path]
+            if parent.logic_children or parent.nonlogic_children or parent is self:
+                return
+            else:
+                leaf = parent

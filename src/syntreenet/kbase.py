@@ -106,9 +106,9 @@ class KnowledgeBase:
             activation = Activation('rule', rule, data=act_data)
         elif tree.expr.name == self.fact_rule:
             fact = self.from_parse_tree(tree)
-            activation = Activation('fact', fact, data={'query_rules': False})
+            activation = Activation('fact', fact, data={'query_rules': self.querying_rules})
         elif tree.expr.name == '__rm__':
-            pass
+            activation = Activation('rm', fact, data={'query_rules': False})
         self.activations.append(activation)
         self.process()
 
@@ -173,10 +173,11 @@ class KnowledgeBase:
 
     def _new_rule_activation(self, act : Activation) -> Rule:
         rule = cast(Rule, act.precedent)
-        conds = [c.substitute(act.data['matching'], self) for c in
+        matching = act.data['matching']
+        conds = [c.substitute(matching, self) for c in
                 rule.conditions if c != act.data['condition']]
         new_conds = tuple(conds)
-        cons = tuple(c.substitute(act.data['matching'], self) for c in rule.consecuences)
+        cons = tuple(c.substitute(matching, self) for c in rule.consecuences)
         new_rule = Rule(new_conds, cons)
         self.dset.add_rule(new_rule)
         self.sset.add_rule(new_rule)
@@ -184,13 +185,31 @@ class KnowledgeBase:
 
     def _new_fact_activations(self, act : Activation):
         rule = cast(Rule, act.precedent)
-        cons = tuple(c.substitute(act.data['matching'], self) for c in rule.consecuences)
-        acts = [Activation('fact', c, data={'query_rules': False}) for c in cons]
+        matching = act.data['matching']
+        cons = tuple(c.substitute(matching, self) for c in rule.consecuences)
+        act_data = {'query_rules': self.querying_rules}
+        acts = [Activation('fact', c, data=act_data) for c in cons]
         self.activations.extend(acts)
 
-    def _new_rule(self, act : Activation):
-        rule = act.precedent
-        for cond in cast(Rule, rule).conditions:
+    def _new_rule(self, rule : Rule):
+        for cond in rule.conditions:
+            answers = self.fset.ask_fact(cond)
+            for a in answers:
+                rulestr = str(rule) + str(a) + str(cond)
+                if rulestr in self.seen_rules:
+                    continue
+                self.seen_rules.add(rulestr)
+                act_data = {
+                    'matching': a,
+                    'condition': cond,
+                    'query_rules': True
+                    }
+                act = Activation('rule', rule, data=act_data)
+                self.activations.append(act)
+
+    def _new_facts(self, act : Activation):
+        rule = cast(Rule, act.precedent)
+        for cond in rule.conditions:
             answers = self.fset.ask_fact(cond)
             for a in answers:
                 rulestr = str(rule) + str(a) + str(cond)
@@ -218,19 +237,30 @@ class KnowledgeBase:
                 self.querying_rules = bool(act.data.get('query_rules'))
                 self.counter += 1
                 s = act.precedent
-                if isinstance(s, Fact):
+                if act.kind == 'fact':
                     if not self.ask(s):
                         logger.info(f'adding fact "{s}"')
                         self._add_fact(s)
                         self.fset.add_fact(s)
-                elif isinstance(s, Rule):
-                    if len(s.conditions) > 1 or act.data['condition'] is EMPTY_FACT:
+                elif act.kind == 'rule':
+                    if len(s.conditions) > 1 or act.data['condition'] == EMPTY_FACT:
                         new_rule = self._new_rule_activation(act)
                         logger.info(f'adding rule "{new_rule}"')
                         if self.querying_rules:
-                            self._new_rule(act)
+                            self._new_rule(new_rule)
                     else:
                         self._new_fact_activations(act)
+                        if self.querying_rules:
+                            self._new_facts(act)
+                elif act.kind == 'rm':
+                    logger.info(f'removing fact "{s}"')
+                    self.fset.rm_fact(s)
+                    # XXX we must also remove the rules createdf by this fact -
+                    # for which we must keep track of the originated rules in
+                    # each fact - and of the endnodes that point to them in
+                    # each rule, so we can remove the rules and the endnodes
+                    # that contain only the rules and any parent node that may
+                    # be left childless and with an empty endnode.
 
             self.processing = False
 

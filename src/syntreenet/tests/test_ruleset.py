@@ -30,9 +30,21 @@ class BoldTextTests(GrammarTestCase):
         resp = self.kb.query("''uu''")
         self.assertTrue(resp)
 
+    def test_simple_rule_after(self):
+        self.kb.tell('((ho ho))')
+        self.kb.tell("((X1)) -> ''uu''")
+        resp = self.kb.query("''uu''")
+        self.assertTrue(resp)
+
     def test_simple_rule_2(self):
         self.kb.tell("((X1)) -> ''X1''")
         self.kb.tell('((ho ho))')
+        resp = self.kb.query("''ho ho''")
+        self.assertTrue(resp)
+
+    def test_simple_rule_2_after(self):
+        self.kb.tell('((ho ho))')
+        self.kb.tell("((X1)) -> ''X1''")
         resp = self.kb.query("''ho ho''")
         self.assertTrue(resp)
 
@@ -40,6 +52,13 @@ class BoldTextTests(GrammarTestCase):
         self.kb.tell("((X1)) ''X2'' -> ''X1'' ((X2))")
         self.kb.tell('((ho ho))')
         self.kb.tell("''hi hi''")
+        resp = self.kb.query("((hi hi))")
+        self.assertTrue(resp)
+
+    def test_simple_rule_3_after(self):
+        self.kb.tell('((ho ho))')
+        self.kb.tell("''hi hi''")
+        self.kb.tell("((X1)) ''X2'' -> ''X1'' ((X2))")
         resp = self.kb.query("((hi hi))")
         self.assertTrue(resp)
 
@@ -53,6 +72,21 @@ class ClassesTests(GrammarTestCase):
         self.kb.tell('animal is thing')
         self.kb.tell('human is animal')
         self.kb.tell('susan isa human')
+        resp = self.kb.query("human is thing")
+        self.assertTrue(resp)
+        resp = self.kb.query("susan isa thing")
+        self.assertTrue(resp)
+        resp = self.kb.query("human isa thing")
+        self.assertFalse(resp)
+        resp = self.kb.goal("human isa thing")
+        self.assertEquals(len(resp), 4)
+
+    def test_simple_rule_after(self):
+        self.kb.tell('animal is thing')
+        self.kb.tell('human is animal')
+        self.kb.tell('susan isa human')
+        self.kb.tell("X1 is X2 ; X2 is X3 -> X1 is X3")
+        self.kb.tell("X1 isa X2 ; X2 is X3 -> X1 isa X3")
         resp = self.kb.query("human is thing")
         self.assertTrue(resp)
         resp = self.kb.query("susan isa thing")
@@ -80,6 +114,19 @@ class PairsTests(GrammarTestCase):
                                      en : (greeting : hello , to : susan)))")
         self.assertTrue(resp)
 
+    def test_simple_rule_after_the_facts(self):
+        self.kb.tell('(es : (salutation : hola) , en : (salutation : hello))')
+        self.kb.tell('(person : (name : susan))')
+        self.kb.tell('''(es : (salutation : X1) , en : (salutation : X2)) ; \
+                        (person : (name : X3)) \
+                        -> \
+                        (greeting : (es : (greeting : X1 , to : X3) , \
+                                     en : (greeting : X2 , to : X3))) \
+        ''')
+        resp = self.kb.query("(greeting : (es : (greeting : hola , to : susan) , \
+                                     en : (greeting : hello , to : susan)))")
+        self.assertTrue(resp)
+
     def test_simple_rule_2(self):
         self.kb.tell('''(wants : she , what : X1) \
                         -> \
@@ -89,7 +136,7 @@ class PairsTests(GrammarTestCase):
         resp = self.kb.query("(gets : she , what : (thing : every , when : always))")
         self.assertTrue(resp)
 
-    def test_simple_rule_with_similar_rules(self):
+    def test_simple_rule_with_similar_conds(self):
         self.kb.tell('''(wants : X1 , what : X2 , for : X1) \
                         -> \
                         (gets : X1 , what : X2) \
@@ -100,6 +147,22 @@ class PairsTests(GrammarTestCase):
         ''')
         self.kb.tell('(wants : she , what : (thing : every , when : always), for : she)')
         self.kb.tell('(wants : she , what : (thing : every , when : always), for : she , in : here)')
+        resp = self.kb.query("(gets : she , what : (thing : every , when : always))")
+        self.assertTrue(resp)
+        resp = self.kb.query("(puts : she , what : (thing : every , when : always))")
+        self.assertTrue(resp)
+
+    def test_simple_rule_with_similar_conds_after(self):
+        self.kb.tell('(wants : she , what : (thing : every , when : always), for : she)')
+        self.kb.tell('(wants : she , what : (thing : every , when : always), for : she , in : here)')
+        self.kb.tell('''(wants : X1 , what : X2 , for : X1) \
+                        -> \
+                        (gets : X1 , what : X2) \
+        ''')
+        self.kb.tell('''(wants : X1 , what : X2 , for : X1 , in : here) \
+                        -> \
+                        (puts : X1 , what : X2) \
+        ''')
         resp = self.kb.query("(gets : she , what : (thing : every , when : always))")
         self.assertTrue(resp)
         resp = self.kb.query("(puts : she , what : (thing : every , when : always))")
