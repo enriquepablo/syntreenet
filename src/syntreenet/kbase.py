@@ -37,11 +37,12 @@ EMPTY_MATCHING : Matching = Matching()
 EMPTY_FACT : Fact = Fact('')
 
 COMMON_RULES = '''
-        __sentence__    = __rule__ / {fact}
+        __sentence__    = __rule__ / {fact} / __rm__
         __rule__        = __conds__ __arrow__ __conss__
         __conds__       = ({fact} __ws__? __sc__? __ws__?)+
         __conss__       = ({fact} __ws__? __sc__? __ws__?)+
         __arrow__       = __ws__? "->" __ws__?
+        __rm__          = "{rm_str}" __ws__ {fact} 
         __var__         = {var_pat}
         __ws__          = ~"\s*"
         __sc__          = {fact_sep}
@@ -54,12 +55,14 @@ class KnowledgeBase:
     '''
     def __init__(self, grammar_text : str,
                  fact_rule : str = 'fact',
+                 rm_str : str = 'rm',
                  var_range_expr : str = '^v_',
                  var_pat : str = '~"_*X[0-9]+"',
                  fact_sep : str = '";"',
                  backend : str = 'parsimonious'):
         common = COMMON_RULES.format(fact=fact_rule,
                                      fact_sep=fact_sep, 
+                                     rm_str=rm_str, 
                                      var_pat=var_pat)
         self.grammar_text = f"{common}\n{grammar_text}"
         self.grammar = Grammar(self.grammar_text)
@@ -95,10 +98,17 @@ class KnowledgeBase:
             conds = tuple(self.from_parse_tree(c) for c in cond_nodes)
             conss = tuple(self.from_parse_tree(c) for c in cons_nodes)
             rule = Rule(conds, conss)
-            activation = Activation(rule, EMPTY_MATCHING, EMPTY_FACT, True)
+            act_data = {
+                'matching': EMPTY_MATCHING,
+                'condition': EMPTY_FACT,
+                'query_rules': True
+                }
+            activation = Activation('rule', rule, data=act_data)
         elif tree.expr.name == self.fact_rule:
             fact = self.from_parse_tree(tree)
-            activation = Activation(fact, query_rules=False)
+            activation = Activation('fact', fact, data={'query_rules': False})
+        elif tree.expr.name == '__rm__':
+            pass
         self.activations.append(activation)
         self.process()
 
@@ -132,7 +142,7 @@ class KnowledgeBase:
         self.sset.propagate(paths, matching)
         fulfillments = []
         for bt in self.sset.backtracks:
-            conds = [c.substitute(bt.matching, self) for c in
+            conds = [c.substitute(bt.data['matching'], self) for c in
                     cast(Rule, bt.precedent).conditions]
             needed = []
             known = []
@@ -163,10 +173,10 @@ class KnowledgeBase:
 
     def _new_rule_activation(self, act : Activation) -> Rule:
         rule = cast(Rule, act.precedent)
-        conds = [c.substitute(act.matching, self) for c in
-                rule.conditions if c != act.condition]
+        conds = [c.substitute(act.data['matching'], self) for c in
+                rule.conditions if c != act.data['condition']]
         new_conds = tuple(conds)
-        cons = tuple(c.substitute(act.matching, self) for c in rule.consecuences)
+        cons = tuple(c.substitute(act.data['matching'], self) for c in rule.consecuences)
         new_rule = Rule(new_conds, cons)
         self.dset.add_rule(new_rule)
         self.sset.add_rule(new_rule)
@@ -174,8 +184,8 @@ class KnowledgeBase:
 
     def _new_fact_activations(self, act : Activation):
         rule = cast(Rule, act.precedent)
-        cons = tuple(c.substitute(act.matching, self) for c in rule.consecuences)
-        acts = [Activation(c) for c in cons]
+        cons = tuple(c.substitute(act.data['matching'], self) for c in rule.consecuences)
+        acts = [Activation('fact', c, data={'query_rules': False}) for c in cons]
         self.activations.extend(acts)
 
     def _new_rule(self, act : Activation):
@@ -187,7 +197,12 @@ class KnowledgeBase:
                 if rulestr in self.seen_rules:
                     continue
                 self.seen_rules.add(rulestr)
-                act = Activation(rule, a, cond, True)
+                act_data = {
+                    'matching': a,
+                    'condition': cond,
+                    'query_rules': True
+                    }
+                act = Activation('rule', rule, data=act_data)
                 self.activations.append(act)
 
     def process(self):
@@ -200,7 +215,7 @@ class KnowledgeBase:
             self.seen_rules = set()
             while self.activations:
                 act = self.activations.pop(0)
-                self.querying_rules = act.query_rules
+                self.querying_rules = bool(act.data.get('query_rules'))
                 self.counter += 1
                 s = act.precedent
                 if isinstance(s, Fact):
@@ -209,7 +224,7 @@ class KnowledgeBase:
                         self._add_fact(s)
                         self.fset.add_fact(s)
                 elif isinstance(s, Rule):
-                    if len(s.conditions) > 1 or act.condition is EMPTY_FACT:
+                    if len(s.conditions) > 1 or act.data['condition'] is EMPTY_FACT:
                         new_rule = self._new_rule_activation(act)
                         logger.info(f'adding rule "{new_rule}"')
                         if self.querying_rules:

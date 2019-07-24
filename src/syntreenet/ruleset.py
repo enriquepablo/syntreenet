@@ -52,10 +52,9 @@ class Activation:
     An activation is produced when a fact matches a condition in a rule,
     and contains the information needed to produce the new facts or rules.
     '''
+    kind : str
     precedent : Union[Rule, Fact]
-    matching : Optional[Matching] = None
-    condition : Optional[Fact] = None
-    query_rules : bool = True
+    data : Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -89,8 +88,12 @@ class EndNode(ChildNode, End):
         root = get_root(self)
         for condition, varmap, rule in self.continuations.values():
             real_matching = matching.get_real_matching(varmap)
-            activation = Activation(rule, real_matching, condition,
-                                    self.kb.querying_rules)
+            act_data = {
+                    'matching': real_matching,
+                    'condition': condition,
+                    'query_rules': self.kb.querying_rules
+                    }
+            activation = Activation('rule', rule, data=act_data)
             root.add_activation(activation)
 
 
