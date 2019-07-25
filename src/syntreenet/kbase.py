@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import os.path
 import re
 from copy import copy
 from dataclasses import dataclass, field
@@ -36,17 +37,6 @@ from parsimonious.nodes import Node
 EMPTY_MATCHING : Matching = Matching()
 EMPTY_FACT : Fact = Fact('')
 
-COMMON_RULES = '''
-        __sentence__    = __rule__ / {fact} / __rm__
-        __rule__        = __conds__ __arrow__ __conss__
-        __conds__       = ({fact} __ws__? __sc__? __ws__?)+
-        __conss__       = ({fact} __ws__? __sc__? __ws__?)+
-        __arrow__       = __ws__? "->" __ws__?
-        __rm__          = "{rm_str}" __ws__ {fact} 
-        __var__         = {var_pat}
-        __ws__          = ~"\s*"
-        __sc__          = {fact_sep}
-'''
 
 class KnowledgeBase:
     '''
@@ -55,15 +45,16 @@ class KnowledgeBase:
     '''
     def __init__(self, grammar_text : str,
                  fact_rule : str = 'fact',
-                 rm_str : str = 'rm',
                  var_range_expr : str = '^v_',
-                 var_pat : str = '~"_*X[0-9]+"',
-                 fact_sep : str = '";"',
+                 base_grammar_fn='../grammars/_base.peg',
                  backend : str = 'parsimonious'):
-        common = COMMON_RULES.format(fact=fact_rule,
-                                     fact_sep=fact_sep, 
-                                     rm_str=rm_str, 
-                                     var_pat=var_pat)
+        '''
+        '''
+        if not os.path.isabs(base_grammar_fn):
+            here = os.path.abspath(os.path.dirname(__file__))
+            base_grammar_fn = os.path.join(here, base_grammar_fn)
+        with open(base_grammar_fn) as fh:
+            common = fh.read()
         self.grammar_text = f"{common}\n{grammar_text}"
         self.grammar = Grammar(self.grammar_text)
         self.fset = FactSet(kb=self)
@@ -261,6 +252,10 @@ class KnowledgeBase:
                     # each rule, so we can remove the rules and the endnodes
                     # that contain only the rules and any parent node that may
                     # be left childless and with an empty endnode.
+
+                    # or - only allow certain conditions to produce activations
+                    # for facts and not for rules - non-logical conditions that
+                    # are actually logical
 
             self.processing = False
 
