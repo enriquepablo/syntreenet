@@ -37,10 +37,12 @@ class BaseSSNode:
     logic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
     nonlogic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
 
-    def get_fact_leaf(self, fact : Fact) -> Optional[SSNode]:
+    def get_fact_leaf(self, paths : List[Path]) -> Optional[SSNode]:
         parent = self
         for i, path in enumerate(paths):
             node = parent.nonlogic_children.get(path)
+            if node is None:
+                node = parent.logic_children.get(path)
             if node is None:
                 return
             parent = node
@@ -171,15 +173,16 @@ class FactSet(BaseSSNode):
         self.query_paths(paths, matching, self.kb)
         return self.response
 
-    def rm_fact(self, fact : Fact):
+    def rm_fact(self, fact : Fact, kb : Any):
         '''
         '''
         paths = fact.get_leaf_paths()
         leaf = self.get_fact_leaf(paths)
-        while True:
+        while not leaf.logic_children and not leaf.nonlogic_children and leaf is not self:
             parent = leaf.parent
-            del parent[leaf.path]
-            if parent.logic_children or parent.nonlogic_children or parent is self:
-                return
+            path = leaf.path
+            if kb.in_var_range(path):
+                del parent.logic_children[path]
             else:
-                leaf = parent
+                del parent.nonlogic_children[path]
+            leaf = parent

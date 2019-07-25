@@ -81,27 +81,31 @@ class KnowledgeBase:
         '''
         tree = self.parse(s)
         if tree.expr.name == '__rule__':
-            for child_node in tree.children:
-                if child_node.expr.name == '__conds__':
-                    cond_nodes = [ch.children[0] for ch in child_node.children]
-                elif child_node.expr.name == '__conss__':
-                    cons_nodes = [ch.children[0] for ch in child_node.children]
-            conds = tuple(self.from_parse_tree(c) for c in cond_nodes)
-            conss = tuple(self.from_parse_tree(c) for c in cons_nodes)
-            rule = Rule(conds, conss)
-            act_data = {
-                'matching': EMPTY_MATCHING,
-                'condition': EMPTY_FACT,
-                'query_rules': True
-                }
-            activation = Activation('rule', rule, data=act_data)
+            activation = self._deal_with_told_rule_tree(tree)
         elif tree.expr.name == self.fact_rule:
             fact = self.from_parse_tree(tree)
             activation = Activation('fact', fact, data={'query_rules': self.querying_rules})
         elif tree.expr.name == '__rm__':
+            fact = self.from_parse_tree(tree.children[2])
             activation = Activation('rm', fact, data={'query_rules': False})
         self.activations.append(activation)
         self.process()
+
+    def _deal_with_told_rule_tree(self, tree : Node) -> Activation:
+        for child_node in tree.children:
+            if child_node.expr.name == '__conds__':
+                conds = tuple(self.from_parse_tree(ch.children[0]) for ch
+                              in child_node.children)
+            elif child_node.expr.name == '__conss__':
+                conss = tuple(self.from_parse_tree(ch.children[0]) for ch
+                              in child_node.children)
+        rule = Rule(conds, conss)
+        act_data = {
+            'matching': EMPTY_MATCHING,
+            'condition': EMPTY_FACT,
+            'query_rules': True
+            }
+        return Activation('rule', rule, data=act_data)
 
     def query(self, q : str) -> Union[List[Matching], bool]:
         tree = self.parse(q)
@@ -245,7 +249,7 @@ class KnowledgeBase:
                             self._new_facts(act)
                 elif act.kind == 'rm':
                     logger.info(f'removing fact "{s}"')
-                    self.fset.rm_fact(s)
+                    self.fset.rm_fact(s, self)
                     # XXX we must also remove the rules createdf by this fact -
                     # for which we must keep track of the originated rules in
                     # each fact - and of the endnodes that point to them in

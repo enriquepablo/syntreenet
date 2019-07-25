@@ -62,6 +62,17 @@ class BoldTextTests(GrammarTestCase):
         resp = self.kb.query("((hi hi))")
         self.assertTrue(resp)
 
+    def test_remove(self):
+        self.kb.tell('((ho ho))')
+        self.kb.tell("''hi hi''")
+        resp = self.kb.query("((ho ho))")
+        self.assertTrue(resp)
+        self.kb.tell('rm ((ho ho))')
+        resp = self.kb.query("((ho ho))")
+        self.assertFalse(resp)
+        resp = self.kb.query("''hi hi''")
+        self.assertTrue(resp)
+
 
 class ClassesTests(GrammarTestCase):
     grammar_file = 'classes.peg'
