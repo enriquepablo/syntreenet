@@ -271,6 +271,9 @@ class Matching:
                 return True
         return False
 
+    def to_dict(self) -> dict:
+        return {str(k): str(v) for k, v in self.mapping}
+
     def copy(self) -> Matching:
         '''
         Return a copy of self
@@ -312,6 +315,17 @@ class Matching:
         '''
         mapping = tuple((v, k) for k, v in self.mapping)
         return Matching(mapping, self.origin)
+
+    def merge(self, other : Matching) -> Matching:
+        '''
+        '''
+        nextmap = dict(self.mapping)
+        for k, v in other.mapping:
+            if k in nextmap and v != nextmap[k]:
+                raise ValueError(f'Merge error {self} and {other}')
+            nextmap[k] = v
+        mapping_tuple = tuple((k, v) for k, v in nextmap.items())
+        return Matching(mapping_tuple, self.origin)
 
     def get_real_matching(self, varmap : Matching) -> Matching:
         '''

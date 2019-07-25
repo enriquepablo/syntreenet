@@ -28,6 +28,7 @@ from typing import List, Set, Union, cast
 from .grammar import Segment, Path, Fact, Matching
 from .factset import FactSet
 from .ruleset import CondSet, ConsSet, Activation, Rule
+from .extra import ec_handlers
 from .logging import logger
 
 from parsimonious.grammar import Grammar
@@ -93,13 +94,18 @@ class KnowledgeBase:
 
     def _deal_with_told_rule_tree(self, tree : Node) -> Activation:
         for child_node in tree.children:
+            econds = ()
             if child_node.expr.name == '__conds__':
                 conds = tuple(self.from_parse_tree(ch.children[0]) for ch
                               in child_node.children)
+            elif child_node.expr.name == '__econds__':
+                econds = tuple(ExtraCondition(kind=ch.children[0].children[2],
+                                              text=ch.children[0].children[4])
+                               for ch in child_node.children)
             elif child_node.expr.name == '__conss__':
                 conss = tuple(self.from_parse_tree(ch.children[0]) for ch
                               in child_node.children)
-        rule = Rule(conds, conss)
+        rule = Rule(conds, econds, conss)
         act_data = {
             'matching': EMPTY_MATCHING,
             'condition': EMPTY_FACT,
@@ -173,7 +179,14 @@ class KnowledgeBase:
                 rule.conditions if c != act.data['condition']]
         new_conds = tuple(conds)
         cons = tuple(c.substitute(matching, self) for c in rule.consecuences)
-        new_rule = Rule(new_conds, cons)
+        econds = rule.extra_conditions
+        new_extra_matching = None
+        if rule.extra_conditions:
+            if rule.extra_matching is None:
+                new_extra_matching = matching.copy()
+            else:
+                new_extra_matching = matching.merge(rule.extra_matching)
+        new_rule = Rule(new_conds, econds, cons, new_extra_matching)
         self.dset.add_rule(new_rule)
         self.sset.add_rule(new_rule)
         return new_rule
@@ -181,6 +194,14 @@ class KnowledgeBase:
     def _new_fact_activations(self, act : Activation):
         rule = cast(Rule, act.precedent)
         matching = act.data['matching']
+        for ec in rule.extra_conditions:
+            result = getattr(ec_handlers, ec.kind)(ec.text,
+                                                   rule.extra_matching,
+                                                   self)
+            if isinstance(result, Matching):
+                matching = matching.merge(result)
+            elif result is False:
+                return
         cons = tuple(c.substitute(matching, self) for c in rule.consecuences)
         act_data = {'query_rules': self.querying_rules}
         acts = [Activation('fact', c, data=act_data) for c in cons]
@@ -250,16 +271,6 @@ class KnowledgeBase:
                 elif act.kind == 'rm':
                     logger.info(f'removing fact "{s}"')
                     self.fset.rm_fact(s, self)
-                    # XXX we must also remove the rules createdf by this fact -
-                    # for which we must keep track of the originated rules in
-                    # each fact - and of the endnodes that point to them in
-                    # each rule, so we can remove the rules and the endnodes
-                    # that contain only the rules and any parent node that may
-                    # be left childless and with an empty endnode.
-
-                    # or - only allow certain conditions to produce activations
-                    # for facts and not for rules - non-logical conditions that
-                    # are actually logical
 
             self.processing = False
 

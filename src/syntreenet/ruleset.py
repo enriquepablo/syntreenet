@@ -33,12 +33,23 @@ class Rule:
     A rule. A set of conditions plus a set of consecuences.
     '''
     conditions : tuple = field(default_factory=tuple)
+    extra_conditions : tuple = field(default_factory=tuple)
     consecuences : tuple = field(default_factory=tuple)
+    extra_matching : Optional[Matching] = None
 
     def __str__(self) -> str:
-        conds = ' '.join([str(c) for c in self.conditions])
-        cons = ' '.join([str(c) for c in self.consecuences])
-        return f'{conds} -> {cons}'
+        conds = '; '.join([str(c) for c in self.conditions])
+        econds = '; '.join([str(c) for c in self.extra_conditions])
+        if econds:
+            econds = '; ' + econds
+        cons = '; '.join([str(c) for c in self.consecuences])
+        return f'{conds} {econds} -> {cons}'
+
+
+@dataclass(frozen=True)
+class ExtraCondition:
+    kind : str
+    text : str
 
 
 @dataclass
