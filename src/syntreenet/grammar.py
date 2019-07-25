@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional, Any, cast
 
@@ -273,12 +272,6 @@ class Matching:
 
     def to_dict(self) -> dict:
         return {str(k): str(v) for k, v in self.mapping}
-
-    def copy(self) -> Matching:
-        '''
-        Return a copy of self
-        '''
-        return Matching(mapping=copy(self.mapping), origin=self.origin)
 
     def get(self, key : Segment) -> Optional[Segment]:
         '''

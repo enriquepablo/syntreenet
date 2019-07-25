@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import os.path
 import re
-from copy import copy
 from dataclasses import dataclass, field
 from typing import List, Set, Union, cast
 
@@ -183,7 +182,7 @@ class KnowledgeBase:
         new_extra_matching = None
         if rule.extra_conditions:
             if rule.extra_matching is None:
-                new_extra_matching = matching.copy()
+                new_extra_matching = matching
             else:
                 new_extra_matching = matching.merge(rule.extra_matching)
         new_rule = Rule(new_conds, econds, cons, new_extra_matching)

@@ -124,13 +124,13 @@ class ParentNode:
             path = paths.pop(0)
             child = self.children.get(path)
             if child is not None:
-                child.propagate(copy(paths), matching.copy())
+                child.propagate(copy(paths), matching)
             
             for vchild in self.var_children:
                 new_path = path.get_subpath(vchild.path)
                 if new_path.value == matching[vchild.path.value]:
                     new_paths = new_path.paths_after(paths, try_to_see=False)
-                    vchild.propagate(new_paths, matching.copy())
+                    vchild.propagate(new_paths, matching)
                     break
 
             if self.var_child is not None:
