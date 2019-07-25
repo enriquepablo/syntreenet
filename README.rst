@@ -1,98 +1,41 @@
 
 ===========
-syntreenet
+Syntreenet
 ===========
 
-----------------------
-Scalable Rule Systems
-----------------------
+-------------------------------------------
+Free and scalable logics for PEG grammars
+-------------------------------------------
 
-syntreenet_ is a Python_ library to develop `production rule systems`_ with
-match cost logarithmic in the size of the knowledge base (rules + facts in
-working memory).
+syntreenet_ allows you to build `production rule systems`_ on top of any PEG
+grammar. In essence, you initialize a syntreenet_ Knowledge Base with a PEG
+grammar, indicate which grammar rule corresponds to facts in the KB, indicate
+over which grammar rules can logical variables range, and can then start adding
+rules and facts to the KB, and querying it.
+
+Syntreenet has been designed with scalability as its main goal. It basically
+relies on 2 tree structures, one that contains the facts, and one that contains
+the rules, and both trees are searched when adding new facts or rules. In these
+trees, each node contains any number of child nodes, arranged in a hash table
+(a Python_ dict); and all the searches in the trees are consultations of these
+hash tables. This means that the cost of adding new facts or rules to the KB is
+O(1) (for the average case) wrt the number of rules and facts.
+
 
 It is licensed under the GPLv3_ and can be found at pypi_.
 
-Note that this is intended as a showcase implementation of the underlying
-algorithm, only to be used in a researcher frame of mind.
-
 .. contents::
 
-Basic concepts and terminology
-++++++++++++++++++++++++++++++
-   
-Production system
------------------
+Example usage
++++++++++++++
 
-Here I talk about rule production systems, with the kind of functionality
-offered by e.g. CLIPS_ or Jess_, i.e., the kind provided by the `RETE
-algorithm`_ and derivatives (among which this present work might be placed).
+   from syntreenet import KnowledgeBase
 
-Rules
------
 
-The terminology I will use here is probably not the most common, but I hope it
-is not uncommon enough to be original. I will speak of rules where others speak
-of productions; rules that can have any number of conditions and consecuences
-(consecuences rather than actions, to stress the fact that the only actions
-implemented are assertions), and which can contain universally quantified
-logical variables, scoped to the rules in which they appear.
+   grammar = '''
 
-Facts and Syntagms
-------------------
+   '''
 
-I will call facts to what some people call WMEs (working memory elements).
-
-With syntreenet, the grammar for the facts (and thus for the conditions and
-consecuences) has to be plugged in. The tools to define grammars offered by
-the library are custom, in that they do not adhere to any standard or
-convention, and are fairly free. I use here the term grammar in a ery
-traditional way, just as "tool that allows you to produce any correct sentence
-in some language". What I call here "grammar files" are just Python modules
-that provide classes with which one can build the objects that will then be
-used as facts with syntreenet.
-
-Basically any grammar whose productions
-(facts) can be represented as trees can be plugged in (but see the next
-paragraph for a clarification). These grammars are provided in the form
-of facts and syntagms - which are defined in whatever ad-hoc manner. The
-only basic requirements for syntagms is that they must be able to tell
-whether they represent a logical variable or not, and that each must have
-a unique string representation.
-
-Since a fact can always be represented as a tree, it means that it can also be
-represented as a set of tuples, each tuple being the path from the root to a
-leaf in the tree; and we can use these tuples to identify each syntactic
-component of the fact, and use the set to reconstruct the fact. So if the
-sentences that the grammar produces can be provided with 2 functions that are
-inverse, one that takes any fact and results in a set of tuples of syntagms,
-and one that takes a set of tuples of syntagms and returns the corresponding
-fact (or warns about the set not corresponding to any well formed fact), this
-grammar can be plugged in to syntreenet. This allows us to abstract away the
-library from grammatical concerns. We can compare 2 facts comparing their paths,
-we can tell whether they are equal or whether one becomes equal to the other
-when we make some substitution, etc.; Without knowing anything about their
-internal structure.
-
-I want to stress this: syntreenet knows nothing about syntax. Facts are a black
-box with whatever internal structure that is appropriate for their universe of
-discourse.  syntreenet never composes a fact. syntreenet only knows about
-ordered sets of tuples of hashable objects. It can take any (completely opaque)
-thing as long as it has methods ``get_paths`` and ``from_paths``, and it tries
-to understand nothing about the sequences of syntagms in the paths, other than
-that they can contain variables, with which it plays. 
-
-Sentences
----------
-
-A final conceptual element is that in syntreenet facts and rules are, both in
-the way they are represented in the network, and in the sense of their typical
-numbers, very similar, and so we use the term sentence to refer to both facts
-and rules. A knowedge base is, then, a set of sentences, to which we can add new
-sentences, or query for facts.
-
-It must be noted that adding new rules after the knowledge base already
-contains facts is not implemented, though it would be trivial.
 
 Installation and usage
 ++++++++++++++++++++++
