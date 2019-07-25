@@ -84,7 +84,7 @@ class KnowledgeBase:
             activation = self._deal_with_told_rule_tree(tree)
         elif tree.expr.name == self.fact_rule:
             fact = self.from_parse_tree(tree)
-            activation = Activation('fact', fact, data={'query_rules': self.querying_rules})
+            activation = Activation('fact', fact, data={'query_rules': False})
         elif tree.expr.name == '__rm__':
             fact = self.from_parse_tree(tree.children[2])
             activation = Activation('rm', fact, data={'query_rules': False})
