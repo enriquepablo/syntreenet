@@ -26,7 +26,7 @@ from typing import List, Set, Union, cast
 
 from .grammar import Segment, Path, Fact, Matching
 from .factset import FactSet
-from .ruleset import CondSet, ConsSet, Activation, Rule
+from .ruleset import CondSet, ConsSet, Activation, Rule, ExtraCondition
 from .extra import ec_handlers
 from .logging import logger
 
@@ -92,14 +92,14 @@ class KnowledgeBase:
         self.process()
 
     def _deal_with_told_rule_tree(self, tree : Node) -> Activation:
+        econds = ()
         for child_node in tree.children:
-            econds = ()
             if child_node.expr.name == '__conds__':
                 conds = tuple(self.from_parse_tree(ch.children[0]) for ch
                               in child_node.children)
             elif child_node.expr.name == '__econds__':
-                econds = tuple(ExtraCondition(kind=ch.children[0].children[2],
-                                              text=ch.children[0].children[4])
+                econds = tuple(ExtraCondition(kind=ch.children[0].children[2].text,
+                                              text=ch.children[0].children[4].text)
                                for ch in child_node.children)
             elif child_node.expr.name == '__conss__':
                 conss = tuple(self.from_parse_tree(ch.children[0]) for ch
@@ -193,14 +193,27 @@ class KnowledgeBase:
     def _new_fact_activations(self, act : Activation):
         rule = cast(Rule, act.precedent)
         matching = act.data['matching']
+        all_results = [matching]
+        prev_results = []
         for ec in rule.extra_conditions:
-            result = getattr(ec_handlers, ec.kind)(ec.text,
-                                                   rule.extra_matching,
-                                                   self)
-            if isinstance(result, Matching):
-                matching = matching.merge(result)
-            elif result is False:
-                return
+            results = getattr(ec_handlers, ec.kind)(ec.text,
+                                                    rule.extra_matching,
+                                                    self)
+            for pm in all_results:
+                new_results = []
+                for m in results:
+                    new_results.append(pm.merge(m))
+                if new_results:
+                    prev_results.extend(new_results)
+
+            if prev_results:
+                all_results = prev_results
+                prev_results = []
+
+        for m in all_results:
+            self._new_fact_activation(rule, m)
+
+    def _new_fact_activation(self, rule : Rule, matching : Matching):
         cons = tuple(c.substitute(matching, self) for c in rule.consecuences)
         act_data = {'query_rules': self.querying_rules}
         acts = [Activation('fact', c, data=act_data) for c in cons]

@@ -62,6 +62,13 @@ class BoldTextTests(GrammarTestCase):
         resp = self.kb.query("((hi hi))")
         self.assertTrue(resp)
 
+    def test_simple_rule_3_extra_cond(self):
+        self.kb.tell('((ho ho))')
+        self.kb.tell("''hi hi''")
+        self.kb.tell("((X1)) {{logic}''X2''} -> ''X1'' ((X2))")
+        resp = self.kb.query("((hi hi))")
+        self.assertTrue(resp)
+
     def test_remove(self):
         self.kb.tell('((ho ho))')
         self.kb.tell("''hi hi''")

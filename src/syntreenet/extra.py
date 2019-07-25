@@ -23,3 +23,10 @@ class ec_handlers:
     @staticmethod
     def python(text, matching, kb):
         return True
+
+    @staticmethod
+    def logic(text, matching, kb):
+        tree = kb.parse(text)
+        ec = kb.from_parse_tree(tree)
+        new_ec = ec.substitute(matching, kb)
+        return kb.ask(new_ec)
