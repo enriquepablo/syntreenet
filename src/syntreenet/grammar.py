@@ -31,14 +31,14 @@ class Segment:
     '''
     '''
     text : str
-    expr : Expression
+    name : str
     start : int = 0
     end : int = 0
     leaf : bool = False
     identity_tuple : tuple = field(init=False)
 
     def __post_init__(self):
-        object.__setattr__(self, 'identity_tuple', (self.expr.name, self.text))
+        object.__setattr__(self, 'identity_tuple', (self.name, self.text))
         if self.end == 0:
             object.__setattr__(self, 'end', len(self.text))
 
@@ -46,7 +46,7 @@ class Segment:
         return self.text
 
     def __repr__(self) -> str:
-        return f'<Segment: {self.expr.name}: {self}>'
+        return f'<Segment: {self.name}: {self}>'
 
     def __hash__(self) -> int:
         return hash(self.identity_tuple)
@@ -58,23 +58,23 @@ class Segment:
         '''
         Whether the segment represents a variable.
         '''
-        return self.expr.name == '__var__'
+        return self.name == '__var__'
 
-    def substitute(self, matching : Matching) -> Segment:
+    def substitute(self, matching : Matching, kb : Any) -> Segment:
         matched = matching.get(self)
         if matched is not None:
             text = matched.text
-            expr = matched.expr
+            name = matched.name
             start = self.start
             end = self.start + len(matched.text)
-            return Segment(text, expr, start, end, True)
+            return Segment(text, name, start, end, True)
         return self
 
 
 def make_var(n : int) -> Segment:
     text = f'__X{n}'
-    expr = Expression(name='__var__')
-    return Segment(text, expr)
+    name = '__var__'
+    return Segment(text, name)
 
 
 @dataclass(frozen=True)
@@ -86,7 +86,7 @@ class Path:
     deep_identity_tuple : tuple = field(init=False)
 
     def __post_init__(self):
-        i = tuple(s.expr.name for s in self.segments) + (self.segments[-1].text,)
+        i = tuple(s.name for s in self.segments) + (self.segments[-1].text,)
         object.__setattr__(self, 'identity_tuple', i)
         object.__setattr__(self, 'deep_identity_tuple',
                            tuple(hash(s) for s in self.segments))
@@ -112,7 +112,7 @@ class Path:
     @property
     def value(self) -> Segment:
         '''
-        Return the string value (expr) of the last segment
+        Return the string value of the last segment
         '''
         return self.segments[-1]
 
@@ -172,7 +172,7 @@ class Path:
                     new_prev.text +
                     segment.text[prev.end:])
             end = segment.start + len(text)
-            new_segment = Segment(text, segment.expr, segment.start, end, False)
+            new_segment = Segment(text, segment.name, segment.start, end, False)
             real_new_segments.append(new_segment)
             new_prev = new_segment
             prev = segment

@@ -85,7 +85,7 @@ class KnowledgeBase:
         return tree.children[0]
 
     def in_var_range(self, path):
-        return bool(self.var_range_expr.match(path[-1].expr.name))
+        return bool(self.var_range_expr.match(path[-1].name))
 
     def tell(self, s : str):
         '''
@@ -309,14 +309,14 @@ class KnowledgeBase:
 
     def _visit_pnode(self, node : Node, root_path : tuple,
             all_paths : List[tuple], parent : Node = None):
-        expr = node.expr
+        name = node.expr.name
         text = node.full_text[node.start: node.end]
         try:
             start = node.start - cast(Segment, parent).start
             end = node.end - cast(Segment, parent).start
         except AttributeError:  # node is root node
             start, end = 0, len(text)
-        segment = Segment(text, expr, start, end, not bool(node.children))
+        segment = Segment(text, name, start, end, not bool(node.children))
         path = root_path + (segment,)
         if path[-1].leaf or self.in_var_range(path):
             all_paths.append(path)

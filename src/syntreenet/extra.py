@@ -43,4 +43,5 @@ class ec_handlers:
             except Exception:
                 return False
 
-        return exec_locals
+        if 'test' in exec_locals and exec_locals['test'] is False:
+            return False
