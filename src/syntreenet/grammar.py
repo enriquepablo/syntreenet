@@ -60,7 +60,7 @@ class Segment:
         '''
         return self.name == '__var__'
 
-    def substitute(self, matching : Matching, kb : Any) -> Segment:
+    def substitute(self, matching : Matching) -> Segment:
         matched = matching.get(self)
         if matched is not None:
             text = matched.text
