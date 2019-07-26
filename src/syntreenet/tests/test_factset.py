@@ -171,3 +171,9 @@ class PairsTests(GrammarTestCase):
         resp = self.kb.fset.ask_fact(f2)
         self.assertEquals(resp[0].mapping[0][0].text, 'X1')
         self.assertEquals(resp[0].mapping[0][1].text, 'adios')
+
+
+'''
+(person : X1 , score : X2) ; (max-score X3 , by : X4) ; <<python> {X2} > {X3} >
+-> rm (max-score X3 , by : X4) ; (max-score : X2 , by : X1)
+'''

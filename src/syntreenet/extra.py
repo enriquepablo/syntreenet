@@ -19,10 +19,9 @@
 
 
 class ec_handlers:
-
-    @staticmethod
-    def python(text, matching, kb):
-        return True
+    '''
+    these functions return False, True, or a new matching dict
+    '''
 
     @staticmethod
     def logic(text, matching, kb):
@@ -30,3 +29,18 @@ class ec_handlers:
         ec = kb.from_parse_tree(tree)
         new_ec = ec.substitute(matching, kb)
         return kb.ask(new_ec)
+
+    @staticmethod
+    def python(text, matching, kb):
+        exec_globals = {}  # TODO some method to inject 3rd party modules here
+        exec_locals = matching.to_dict()
+        try:
+            test = eval(text, exec_globals, exec_locals)
+            exec_locals['test'] = test
+        except SyntaxError:
+            try:
+                exec(text, exec_globals, exec_locals)
+            except Exception:
+                return False
+
+        return exec_locals

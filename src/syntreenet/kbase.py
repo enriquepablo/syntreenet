@@ -38,6 +38,17 @@ EMPTY_MATCHING : Matching = Matching()
 EMPTY_FACT : Fact = Fact('')
 
 
+@dataclass
+class Lexicon:
+    words : Dict[str, Segment] = field(default_factory=dict)
+
+    def set(self, word : Segment):
+        self.words[str(word)] = word
+
+    def get(word : str) -> Segment:
+        return self.words[word]
+
+
 class KnowledgeBase:
     '''
     The object that contains both the graph of rules (or the tree of
@@ -67,6 +78,7 @@ class KnowledgeBase:
         self.seen_rules : Set[str] = set()
         self.fact_rule : str = fact_rule
         self.var_range_expr = re.compile(var_range_expr)
+        self.lexicon : Lexicon = field(default_factory=Lexicon)
 
     def parse(self, s : str) -> Node:
         tree = self.grammar.parse(s)

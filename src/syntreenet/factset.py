@@ -147,11 +147,23 @@ class SSNode(BaseSSNode, ContentSSNode):
 
 
 @dataclass
+class Lexicon:
+    words : Dict[str, Segment] = field(default_factory=dict)
+
+    def set(self, word : Segment):
+        self.words[str(word)] = word
+
+    def get(word : str) -> Segment:
+        return self.words[word]
+
+
+@dataclass
 class FactSet(BaseSSNode):
     '''
     A set of facts arranged in a tree structure that facilitates queries.
     '''
     kb : Any = None
+    lexicon : Lexicon = field(default_factory=Lexicon)
     response : List[Matching] = field(default_factory=list)
 
     def __str__(self) -> str:
