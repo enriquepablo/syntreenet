@@ -92,10 +92,8 @@ class EndNode(ChildNode, End):
     mapping of the (normalized) variables in the condition in the ruleset, to
     the actual variables in the rule provided by the user.
     '''
+    parent : Optional[ParentNode] = None
     kb : Any = None
-
-    def __str__(self) -> str:
-        return f'end for : {self.parent}'
 
     def add_matching(self, matching : Matching):
         '''
@@ -165,9 +163,7 @@ class Node(ParentNode, ChildNode, ContentNode):
     '''
     A node in the tree of conditions.
     '''
-
-    def __str__(self) -> str:
-        return f'node : {self.path}'
+    parent : ParentNode
 
 
 @dataclass
@@ -233,11 +229,12 @@ class RuleSet(ParentNode, ChildNode):
             if rulestr not in node.endnode.continuations:
                 node.endnode.continuations[rulestr] = (con, varmap, rule)
 
-    def get_cons(self, rule : Rule) -> tuple:
+    def get_cons(self, rule : Optional[Rule]) -> tuple:
         raise NotImplementedError()
 
-    def add_activation(self, act : Activation):
+    def add_activation(self, act : Optional[Activation]):
         raise NotImplementedError()
+
 
 @dataclass
 class CondSet(RuleSet):

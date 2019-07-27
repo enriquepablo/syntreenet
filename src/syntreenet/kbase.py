@@ -92,7 +92,7 @@ class KnowledgeBase:
         self.process()
 
     def _deal_with_told_rule_tree(self, tree : Node) -> Activation:
-        econds = ()
+        econds : tuple = ()
         for child_node in tree.children:
             if child_node.expr.name == '__conds__':
                 conds = tuple(self.from_parse_tree(ch.children[0]) for ch
@@ -243,9 +243,6 @@ class KnowledgeBase:
             answers = self.fset.ask_fact(cond)
             for a in answers:
                 rulestr = str(rule) + str(a) + str(cond)
-                if rulestr in self.seen_rules:
-                    continue
-                self.seen_rules.add(rulestr)
                 act_data = {
                     'matching': a,
                     'condition': cond,

@@ -92,7 +92,7 @@ class Path:
                            tuple(hash(s) for s in self.segments))
 
     def __str__(self) -> str:
-        return ' -> '.join(self.identity_tuple)
+        return ' - '.join(self.identity_tuple)
 
     def __repr__(self) -> str:
         return f'<Path: {self}>'

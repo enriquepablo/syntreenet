@@ -80,6 +80,26 @@ class BoldTextTests(GrammarTestCase):
         resp = self.kb.query("''hi hi''")
         self.assertTrue(resp)
 
+    def test_non_remove(self):
+        self.kb.tell('((ho ho))')
+        resp = self.kb.query("((ho ho))")
+        self.assertTrue(resp)
+        self.kb.tell('rm ((he he))')
+        resp = self.kb.query("((ho ho))")
+        self.assertTrue(resp)
+
+    def test_simple_rule_raise(self):
+        self.kb.tell("((X1)) {{python}raise Exception()} -> ''uu''")
+        self.kb.tell('((ho ho))')
+        resp = self.kb.query("''uu''")
+        self.assertFalse(resp)
+
+    def test_simple_rule_test_false(self):
+        self.kb.tell("((X1)) {{python}test = False} -> ''uu''")
+        self.kb.tell('((ho ho))')
+        resp = self.kb.query("''uu''")
+        self.assertFalse(resp)
+
 
 class ClassesTests(GrammarTestCase):
     grammar_file = 'classes.peg'
@@ -215,6 +235,23 @@ class ScoreTests(GrammarTestCase):
                         rm mean X3 X4 X5 ;
                         mean X6 X7 X8''')
         self.kb.tell('mean 0 0 0')
+        self.kb.tell('score susan 19')
+        self.kb.tell('score john 9')
+        self.kb.tell('score paul 1')
+        self.kb.tell('score lil 29')
+        resp = self.kb.query('mean X1 X2 X3')
+        self.assertTrue(resp)
+
+    def test_simple_rule_3(self):
+        self.kb.tell('''score X1 X2 ;
+                        max-score nobody X9 ; 
+                        {{logic}mean X3 X4 X5} ;
+                        {{python}X6 = X3 + 1; X7 = X4 + X2; X8 = X7 / X6}
+                        ->
+                        rm mean X3 X4 X5 ;
+                        mean X6 X7 X8''')
+        self.kb.tell('mean 0 0 0')
+        self.kb.tell('max-score nobody 0')
         self.kb.tell('score susan 19')
         self.kb.tell('score john 9')
         self.kb.tell('score paul 1')

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from copy import copy
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, cast
 
 from .grammar import Fact, Path, Matching
 
@@ -33,7 +33,7 @@ class BaseSSNode:
     fact set or another node, and children, which is a dictionary of paths
     to nodes.
     '''
-    parent : Optional[BaseSSNode] = None
+    parent : Optional[BaseSSNode]
     logic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
     nonlogic_children : Dict[Path, 'SSNode'] = field(default_factory=dict)
 
@@ -44,9 +44,9 @@ class BaseSSNode:
             if node is None:
                 node = parent.logic_children.get(path)
             if node is None:
-                return
+                return None
             parent = node
-        return parent
+        return cast(SSNode, parent)
 
     def follow_paths(self, paths : List[Path], kb : Any):
         '''
@@ -121,7 +121,7 @@ class BaseSSNode:
 
     def _response_append(self, matching : Matching):
         if self.parent is None:
-            self.response.append(matching)
+            cast(FactSet, self).response.append(matching)
         else:
             self.parent._response_append(matching)
 
@@ -141,9 +141,7 @@ class SSNode(BaseSSNode, ContentSSNode):
     '''
     Concrete nodes in the fact set.
     '''
-
-    def __str__(self):
-        return f'node : {self.path}'
+    parent : BaseSSNode
 
 
 @dataclass
@@ -151,11 +149,9 @@ class FactSet(BaseSSNode):
     '''
     A set of facts arranged in a tree structure that facilitates queries.
     '''
+    parent : Optional[BaseSSNode] = None
     kb : Any = None
     response : List[Matching] = field(default_factory=list)
-
-    def __str__(self) -> str:
-        return 'fset'
 
     def add_fact(self, fact: Fact):
         '''
@@ -188,4 +184,4 @@ class FactSet(BaseSSNode):
                 del parent.logic_children[path]
             else:
                 del parent.nonlogic_children[path]
-            leaf = parent
+            leaf = cast(SSNode, parent)

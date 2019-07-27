@@ -172,8 +172,53 @@ class PairsTests(GrammarTestCase):
         self.assertEquals(resp[0].mapping[0][0].text, 'X1')
         self.assertEquals(resp[0].mapping[0][1].text, 'adios')
 
+    def test_nested_fact_substitute(self):
+        tree1 = self.kb.parse('(es : (hola : adios), en : (hello : bye))')
+        f1 = self.kb.from_parse_tree(tree1)
+        tree2 = self.kb.parse('(es : X1, en : X2)')
+        f2 = self.kb.from_parse_tree(tree2)
+        pair = f1.get_all_paths()[4][-1]
+        self.assertEquals(str(pair), '(hola : adios)')
+        var = f2.get_leaf_paths()[3][-1]
+        self.assertEquals(str(var), 'X1')
+        matching = g.Matching(((pair, var),))
+        self.assertEquals(repr(matching), '<Match: (hola : adios) : X1>')
+        new = f1.substitute(matching, self.kb)
+        self.assertEquals(repr(new), '<Fact <(es : X1, en : (hello : bye))>')
+        with self.assertRaises(KeyError):
+            matching[g.Segment('foo')]
 
-'''
-(person : X1 , score : X2) ; (max-score X3 , by : X4) ; <<python> {X2} > {X3} >
--> rm (max-score X3 , by : X4) ; (max-score : X2 , by : X1)
-'''
+        new_matching = matching.setitem(pair, pair)
+        self.assertEquals(repr(new_matching), '<Match: (hola : adios) : (hola : adios)>')
+        with self.assertRaises(ValueError):
+            matching.merge(new_matching)
+
+
+class ClassesTests(GrammarTestCase):
+    grammar_file = 'classes.peg'
+
+    def test_repeated(self):
+        self.kb.tell("X1 is X2 ; X2 is X3 -> X1 is X3")
+        self.kb.tell("X1 isa X2 ; X2 is X3 -> X1 isa X3")
+        self.kb.tell('animal is thing')
+        self.kb.tell('mammal is animal')
+        self.kb.tell('primate is mammal')
+        self.kb.tell('human is primate')
+        self.kb.tell('vegetable is thing')
+        self.kb.tell('tree is vegetable')
+        self.kb.tell('pine is tree')
+        sets = ('thing', 'animal', 'mammal', 'primate', 'human',
+                'vegetable', 'tree', 'pine')
+        l = len(sets)
+        for i in range(200):
+            s = sets[i % l]
+            fact = f'{s}{i} isa {s}'
+            self.kb.tell(fact)
+        self.assertEquals(self.kb.counter, 2385)
+
+    def test_one_hundred(self):
+        from ..ruleset import RuleSet
+        with self.assertRaises(NotImplementedError):
+            RuleSet().get_cons(rule=None)
+        with self.assertRaises(NotImplementedError):
+            RuleSet().add_activation(act=None)

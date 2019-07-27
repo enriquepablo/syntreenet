@@ -39,6 +39,10 @@ class BoldTextTests(GrammarTestCase):
         f2 = self.kb.from_parse_tree(tree2)
 
         self.assertEquals(f1.get_all_paths()[0][0].text, '((ho ho))')
+        self.assertEquals(repr(f1.get_all_paths()[0][0]),
+                '<Segment: fact: ((ho ho))>')
+        self.assertEquals(repr(f1.get_all_paths()[0]),
+                '<Path: fact - bold_text - bold_open - ((>')
         self.assertEquals(f1.get_all_paths()[0][0].name, 'fact')
         self.assertEquals(f1.get_all_paths()[0].value.text, '((')
         self.assertEquals(f1.get_all_paths()[0].value.name, 'bold_open')
