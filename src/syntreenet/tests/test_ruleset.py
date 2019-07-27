@@ -191,7 +191,12 @@ class ScoreTests(GrammarTestCase):
     grammar_file = 'score.peg'
 
     def test_simple_rule(self):
-        self.kb.tell('score X1 X2 ; {{logic}max-score X3 X4} ; {{python}X2 > X4} -> rm max-score X3 X4 ; max-score X1 X2')
+        self.kb.tell('''score X1 X2 ;
+                        {{logic}max-score X3 X4} ;
+                        {{python}X2 > X4}
+                        ->
+                        rm max-score X3 X4 ;
+                        max-score X1 X2''')
         self.kb.tell('max-score nobody 0')
         self.kb.tell('score susan 19')
         self.kb.tell('score john 9')
@@ -200,6 +205,45 @@ class ScoreTests(GrammarTestCase):
         self.kb.tell('score paul 1')
         self.kb.tell('score lil 29')
         resp = self.kb.query('max-score lil 29')
+        self.assertTrue(resp)
+
+    def test_simple_rule_2(self):
+        self.kb.tell('''score X1 X2 ;
+                        {{logic}mean X3 X4 X5} ;
+                        {{python}X6 = X3 + 1; X7 = X4 + X2; X8 = X7 / X6}
+                        ->
+                        rm mean X3 X4 X5 ;
+                        mean X6 X7 X8''')
+        self.kb.tell('mean 0 0 0')
+        self.kb.tell('score susan 19')
+        self.kb.tell('score john 9')
+        self.kb.tell('score paul 1')
+        self.kb.tell('score lil 29')
+        resp = self.kb.query('mean X1 X2 X3')
+        self.assertTrue(resp)
+
+    def test_simple_rule_both(self):
+        self.kb.tell('''score X1 X2 ;
+                        {{logic}mean X3 X4 X5} ;
+                        {{python}X6 = X3 + 1; X7 = X4 + X2; X8 = X7 / X6}
+                        ->
+                        rm mean X3 X4 X5 ;
+                        mean X6 X7 X8''')
+        self.kb.tell('''score X1 X2 ;
+                        {{logic}max-score X3 X4} ;
+                        {{python}X2 > X4}
+                        ->
+                        rm max-score X3 X4 ;
+                        max-score X1 X2''')
+        self.kb.tell('max-score nobody 0')
+        self.kb.tell('mean 0 0 0')
+        self.kb.tell('score susan 19')
+        self.kb.tell('score john 9')
+        self.kb.tell('score paul 1')
+        self.kb.tell('score lil 29')
+        resp = self.kb.query('max-score lil 29')
+        self.assertTrue(resp)
+        resp = self.kb.query('mean 4.0 58.0 14.5')
         self.assertTrue(resp)
 
 

@@ -17,6 +17,8 @@
 # along with any part of the terms project.
 # If not, see <http://www.gnu.org/licenses/>.
 
+from .grammar import Segment, Matching
+
 
 class ec_handlers:
     '''
@@ -41,15 +43,14 @@ class ec_handlers:
             except ValueError:
                 exec_locals[k] = v
         try:
-            test = eval(text, exec_globals, exec_locals)
-            exec_locals['test'] = test
+            return eval(text, exec_globals, exec_locals)
         except SyntaxError:
             try:
                 exec(text, exec_globals, exec_locals)
             except Exception:
                 return False
-
-        if 'test' in exec_locals and exec_locals['test'] is False:
-            return False
-
-        return True
+            if 'test' in exec_locals and exec_locals['test'] is False:
+                return False
+            new_mapping = tuple((Segment(k, '__var__'), Segment(str(v)))
+                    for k, v in exec_locals.items() if k not in pre_exec_locals)
+            return [Matching(new_mapping)]

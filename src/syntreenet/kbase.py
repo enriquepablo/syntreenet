@@ -203,11 +203,10 @@ class KnowledgeBase:
     def _new_fact_activations(self, act : Activation):
         rule = cast(Rule, act.precedent)
         matching = act.data['matching']
-        all_results = [matching]
+        all_results = [matching.merge(rule.extra_matching)]
         prev_results = []
         for ec in rule.extra_conditions:
             for m in all_results:
-                m = m.merge(rule.extra_matching)
                 results = getattr(ec_handlers, ec.kind)(ec.text, m, self)
                 if results is True:
                     continue
@@ -215,7 +214,7 @@ class KnowledgeBase:
                     return
                 new_results = []
                 for pm in results:
-                    new_results.append(pm.merge(m))
+                    new_results.append(m.merge(pm))
                 if new_results:
                     prev_results.extend(new_results)
 

@@ -31,7 +31,7 @@ class Segment:
     '''
     '''
     text : str
-    name : str
+    name : str = 'unknown'
     start : int = 0
     end : int = 0
     leaf : bool = False
@@ -312,6 +312,8 @@ class Matching:
     def merge(self, other : Matching) -> Matching:
         '''
         '''
+        if other is None:
+            return self
         nextmap = dict(self.mapping)
         for k, v in other.mapping:
             if k in nextmap and v != nextmap[k]:
