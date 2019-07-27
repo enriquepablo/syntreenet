@@ -178,7 +178,10 @@ class FactSet(BaseSSNode):
         '''
         paths = fact.get_leaf_paths()
         leaf = self.get_fact_leaf(paths)
-        while not leaf.logic_children and not leaf.nonlogic_children and leaf is not self:
+        while (leaf and
+                not leaf.logic_children and
+                not leaf.nonlogic_children and
+                leaf is not self):
             parent = leaf.parent
             path = leaf.path
             if kb.in_var_range(path):

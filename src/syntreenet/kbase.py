@@ -102,9 +102,18 @@ class KnowledgeBase:
                                               text=ch.children[0].children[4].text)
                                for ch in child_node.children)
             elif child_node.expr.name == '__conss__':
-                conss = tuple(self.from_parse_tree(ch.children[0]) for ch
-                              in child_node.children)
-        rule = Rule(conds, econds, conss)
+                conss_list = []
+                rms_list = []
+                for child in child_node.children:
+                    if child.children[0].children[0].expr.name == self.fact_rule:
+                        conss_list.append(self.from_parse_tree(child.children[0].children[0]))
+                    elif child.children[0].children[0].expr.name == "__rm__":
+                        fact_tree = child.children[0].children[0].children[2]
+                        rms_list.append(self.from_parse_tree(fact_tree))
+                    pass
+                conss = tuple(conss_list)
+                rms = tuple(rms_list)
+        rule = Rule(conds, econds, conss, rms)
         act_data = {
             'matching': EMPTY_MATCHING,
             'condition': EMPTY_FACT,
@@ -178,6 +187,7 @@ class KnowledgeBase:
                 rule.conditions if c != act.data['condition']]
         new_conds = tuple(conds)
         cons = tuple(c.substitute(matching, self) for c in rule.consecuences)
+        rms = tuple(c.substitute(matching, self) for c in rule.to_remove)
         econds = rule.extra_conditions
         new_extra_matching = None
         if rule.extra_conditions:
@@ -185,7 +195,7 @@ class KnowledgeBase:
                 new_extra_matching = matching
             else:
                 new_extra_matching = matching.merge(rule.extra_matching)
-        new_rule = Rule(new_conds, econds, cons, new_extra_matching)
+        new_rule = Rule(new_conds, econds, cons, rms, new_extra_matching)
         self.dset.add_rule(new_rule)
         self.sset.add_rule(new_rule)
         return new_rule
@@ -196,12 +206,15 @@ class KnowledgeBase:
         all_results = [matching]
         prev_results = []
         for ec in rule.extra_conditions:
-            results = getattr(ec_handlers, ec.kind)(ec.text,
-                                                    rule.extra_matching,
-                                                    self)
-            for pm in all_results:
+            for m in all_results:
+                m = m.merge(rule.extra_matching)
+                results = getattr(ec_handlers, ec.kind)(ec.text, m, self)
+                if results is True:
+                    continue
+                elif results is False:
+                    return
                 new_results = []
-                for m in results:
+                for pm in results:
                     new_results.append(pm.merge(m))
                 if new_results:
                     prev_results.extend(new_results)
@@ -214,10 +227,17 @@ class KnowledgeBase:
             self._new_fact_activation(rule, m)
 
     def _new_fact_activation(self, rule : Rule, matching : Matching):
-        cons = tuple(c.substitute(matching, self) for c in rule.consecuences)
         act_data = {'query_rules': self.querying_rules}
-        acts = [Activation('fact', c, data=act_data) for c in cons]
-        self.activations.extend(acts)
+        for c in rule.to_remove:
+            kind = 'rm'
+            con = c.substitute(matching, self)
+            act = Activation(kind, con, data=act_data)
+            self.activations.append(act)
+        for c in rule.consecuences:
+            kind = 'fact'
+            con = c.substitute(matching, self)
+            act = Activation(kind, con, data=act_data)
+            self.activations.append(act)
 
     def _new_rule(self, rule : Rule):
         for cond in rule.conditions:

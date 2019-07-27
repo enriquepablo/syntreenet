@@ -35,6 +35,7 @@ class Rule:
     conditions : tuple = field(default_factory=tuple)
     extra_conditions : tuple = field(default_factory=tuple)
     consecuences : tuple = field(default_factory=tuple)
+    to_remove : tuple = field(default_factory=tuple)
     extra_matching : Optional[Matching] = None
 
     def __str__(self) -> str:
@@ -43,6 +44,9 @@ class Rule:
         if econds:
             econds = '; ' + econds
         cons = '; '.join([str(c) for c in self.consecuences])
+        rms = '; '.join([str(c) for c in self.to_remove])
+        if rms:
+            cons = f'{rms} ; {cons}'
         return f'{conds} {econds} -> {cons}'
 
 

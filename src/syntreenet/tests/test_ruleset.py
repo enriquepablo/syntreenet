@@ -187,6 +187,22 @@ class PairsTests(GrammarTestCase):
         self.assertTrue(resp)
 
 
+class ScoreTests(GrammarTestCase):
+    grammar_file = 'score.peg'
+
+    def test_simple_rule(self):
+        self.kb.tell('score X1 X2 ; {{logic}max-score X3 X4} ; {{python}X2 > X4} -> rm max-score X3 X4 ; max-score X1 X2')
+        self.kb.tell('max-score nobody 0')
+        self.kb.tell('score susan 19')
+        self.kb.tell('score john 9')
+        resp = self.kb.query('max-score susan 19')
+        self.assertTrue(resp)
+        self.kb.tell('score paul 1')
+        self.kb.tell('score lil 29')
+        resp = self.kb.query('max-score lil 29')
+        self.assertTrue(resp)
+
+
 
 '''
 person is thing

@@ -1,0 +1,12 @@
+
+fact        = max_scoring / scoring
+
+max_scoring = max_score ws name ws value
+scoring     = score ws name ws value
+score       = "score"
+max_score   = "max-score"
+name        = v_name / __var__
+v_name      = ~"[a-z]+"
+value       = v_value / __var__
+v_value     = ~"\d+"
+ws          = " "

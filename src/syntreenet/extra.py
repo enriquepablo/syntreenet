@@ -33,7 +33,13 @@ class ec_handlers:
     @staticmethod
     def python(text, matching, kb):
         exec_globals = {}  # TODO some method to inject 3rd party modules here
-        exec_locals = matching.to_dict()
+        pre_exec_locals = matching.to_dict()
+        exec_locals = {}
+        for k,v in pre_exec_locals.items():
+            try:
+                exec_locals[k] = float(v)
+            except ValueError:
+                exec_locals[k] = v
         try:
             test = eval(text, exec_globals, exec_locals)
             exec_locals['test'] = test
@@ -45,3 +51,5 @@ class ec_handlers:
 
         if 'test' in exec_locals and exec_locals['test'] is False:
             return False
+
+        return True
