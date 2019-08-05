@@ -140,7 +140,7 @@ KnowledgeBase.
 
 * The top production in the grammar must be called "fact".
 * The productions that must be in the range of the logical variables must have
-  a name starting with "v_".
+  a name starting with ``"v_"``.
 * These "logical" productions must happen in higher productions as alternatives
   to the builtin production "__var__".
 * To make rules, 2 sets of facts (the conditions and the consecuences) must be
@@ -169,6 +169,10 @@ Objects of this class offer 3 methods:
 * `goal`: provided with a fact, it will return the facts that would be needed
   to get it to the knowledge base (without directly adding it). This is a form
   of backtracking.
+
+
+
+Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
 
 .. |element| unicode:: U+02208 .. element sign
 .. |subset| unicode:: U+02286 .. subset sign
