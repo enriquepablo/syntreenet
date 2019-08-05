@@ -121,7 +121,7 @@ class KnowledgeBase:
             }
         return Activation('rule', rule, data=act_data)
 
-    def query(self, q : str) -> Union[List[Matching], bool]:
+    def query(self, q : str) -> Union[dict, bool]:
         tree = self.parse(q)
         qf = self.from_parse_tree(tree)
         response = self.ask(qf)
@@ -129,7 +129,7 @@ class KnowledgeBase:
             return False
         if len(response) == 1 and not response[0].mapping:
             return True
-        return response
+        return [m.to_dict() for m in response]
 
     def ask(self, q : Fact) -> List[Matching]:
         '''
