@@ -197,3 +197,4 @@ Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
 .. _Python: http://www.python.org/
 .. _syntreenet.scripts: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/syntreenet/scripts/
 .. _Parsimonious: https://github.com/erikrose/parsimonious
+.. _nose2: https://docs.nose2.io/en/latest/
