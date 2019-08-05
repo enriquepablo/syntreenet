@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import setuptools
 
-version = '0.1.0a11'
+version = '1.0.0b1'
 
 with open("requirements.txt", "r") as fh:
     install_requires = [x for x in fh.read().split('\n') if len(x) > 0]

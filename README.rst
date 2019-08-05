@@ -8,15 +8,17 @@ Free logics from PEGs
 -----------------------
 
 Syntreenet facilitates easy development of any finite domain formal
-theory possible in any language described by a Parsing Expression Grammar.
+theory possible in any language described by a `Parsing Expression Grammar`_.
 
 It provides a knowledge base in the form of a performant and scalable
-production system, where rules and facts interact to produce new rules and
+`production system`_, where rules and facts interact to produce new rules and
 facts. Facts in this context are the top productions in the provided PEGs, and
 rules are fundamentally composed of a set of those facts as conditions and
 another set of facts as consecuences.
 
 It's only dependence is on the excellent Parsimonious_ PEG parser by Erik Rose.
+
+.. contents::
 
 Example Usage
 -------------
@@ -56,7 +58,9 @@ So we modify the grammar substituting the "word" rule with::
    v_word      = ~"[a-z0-9]+"
 
 With this grammar we can now build a knowledge base, and add rules appropriate
-for our purposes::
+for our purposes:
+
+.. code:: python
 
    >>> from syntreenet import KnowledgeBase
 
@@ -76,7 +80,9 @@ for our purposes::
    >>> kb.tell("X1 subset-of X2 ; X2 subset-of X3 -> X1 subset-of X3")
 
 Now we can add facts to the knowledge base, and query for them or for their
-conscuences::
+conscuences:
+
+.. code:: python
 
    >>> kb.tell("a element-of b")
    >>> kb.tell("b subset-of c")
@@ -118,7 +124,8 @@ Detailed Usage
 Install
 .......
 
-Just use pip in a Python >= 3.7 environment.
+syntreenet_ is available at pypi_, just use pip in a Python >= 3.7
+environment::
 
    $ pip install syntreenet
    $ python
@@ -148,7 +155,7 @@ Basic API
 .........
 
 The API is extremelly simple. As seen above, the entry point for syntreenet is
-the KnowledgeBase class. It is instantiated with a string containing a PEG
+the ``KnowledgeBase`` class. It is instantiated with a string containing a PEG
 appropriate for Parsimonious_ and subject to the restrictions stated above.
 
 Objects of this class offer 3 methods:
@@ -165,3 +172,12 @@ Objects of this class offer 3 methods:
 
 .. |element| unicode:: U+02208 .. element sign
 .. |subset| unicode:: U+02286 .. subset sign
+
+.. _syntreenet: http://www.syntree.net/
+.. _GPLv3: https://www.gnu.org/licenses/gpl-3.0.txt
+.. _pypi: https://pypi.org/project/syntreenet/
+.. _`production system`: https://en.wikipedia.org/wiki/Production_system_%28computer_science%29
+.. _`Parsing Expression Grammar`: https://en.wikipedia.org/wiki/Parsing_expression_grammar
+.. _Python: http://www.python.org/
+.. _syntreenet.scripts: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/syntreenet/scripts/
+.. _Parsimonious: https://github.com/erikrose/parsimonious
