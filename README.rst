@@ -16,7 +16,7 @@ facts. Facts in this context are the top productions in the provided PEGs, and
 rules are fundamentally composed of a set of those facts as conditions and
 another set of facts as consecuences.
 
-It uses the excellent Parsimonious_ PEG parser by Erik Rose.
+It's only dependence is on the excellent Parsimonious_ PEG parser by Erik Rose.
 
 Example Usage
 -------------
@@ -24,7 +24,7 @@ Example Usage
 Let's start with a simple grammar with which we can build triples consisting on
 a subject, a predicate, and an object, with 2 predicates, |element| and
 |subset|, thus producing classifications of things. To make this example
-simpler, we will use the ASCII string "element-of" in place of the unicode point |element|,
+simpler, we will use the ASCII string "element-of" in place of unicode |element|,
 and "subset-of" in place of |subset|.
 
 The grammar for this might be something like::
@@ -58,26 +58,110 @@ So we modify the grammar substituting the "word" rule with::
 With this grammar we can now build a knowledge base, and add rules appropriate
 for our purposes::
 
-   grammar = """
-      fact        = word ws pred ws word
-      pred        = element / subset
-      element     = "element-of"
-      subset      = "subset-of"
-      word        = v_word / __var__
-      v_word      = ~"[a-z0-9]+"
-      ws          = ~"\s+"
-   """
+   >>> from syntreenet import KnowledgeBase
 
-   kb = KnowledgeBase(grammar)
+   >>> grammar = """
+   >>>    fact        = word ws pred ws word
+   >>>    pred        = element / subset
+   >>>    element     = "element-of"
+   >>>    subset      = "subset-of"
+   >>>    word        = v_word / __var__
+   >>>    v_word      = ~"[a-z0-9]+"
+   >>>    ws          = ~"\s+"
+   >>> """
 
-   kb.tell("X1 element-of X2 ; X2 subset-of X3 -> X1 element-of X3")
-   kb.tell("X1 subset-of X2 ; X2 subset-of X3 -> X1 subset-of X3")
+   >>> kb = KnowledgeBase(grammar)
 
-   kb.tell("a element-of b")
-   kb.tell("b subset-of c")
-   kb.tell("c subset-of d")
+   >>> kb.tell("X1 element-of X2 ; X2 subset-of X3 -> X1 element-of X3")
+   >>> kb.tell("X1 subset-of X2 ; X2 subset-of X3 -> X1 subset-of X3")
+
+Now we can add facts to the knowledge base, and query for them or for their
+conscuences::
+
+   >>> kb.tell("a element-of b")
+   >>> kb.tell("b subset-of c")
+   >>> kb.tell("c subset-of d")
+
+   >>> kb.query("a element-of b")
+   True
+   >>> kb.query("a element-of d")
+   True
+   >>> kb.query("c element-of d")
+   False
+   >>> kb.query("X1 subset-of d")
+   [{'X1': 'b'}, {'X1': 'c'}]
+
+Goals
+-----
+
+Scalability:
+   Adding new facts or rules is essentially O(1) in the number of rules plus
+   facts already present in the knowledge base. Theoretically, this is due to
+   the fact that the DAGs that hold the data are only ever searched by
+   consulting Python_ dictionaries. Practically, I am getting a fairly constant
+   value of a couple tenths of a millisecond per fact (this will depend on the
+   complexity of the grammar), up to the capacity of my laptop (totalling
+   around 2 million facts and rules). 
+
+Universality:
+   The "free" in the heading caption is in the sense of a "free object" over
+   the "set of PEGs": syntreenet knows nothing about the grammar underlying the
+   particular logic it deals with at any particular moment.
+
+Clear and tested code:
+   The code follows best practices for readability and is tested with 99%
+   coverage including branch analysis.
+
+Detailed Usage
+--------------
+
+Install
+.......
+
+Just use pip in a Python >= 3.7 environment.
+
+   $ pip install syntreenet
+   $ python
+   >>> import syntreenet
 
 
+Grammar requirements
+....................
+
+Note that these requirements can be overridden in the init method for
+KnowledgeBase.
+
+* The top production in the grammar must be called "fact".
+* The productions that must be in the range of the logical variables must have
+  a name starting with "v_".
+* These "logical" productions must happen in higher productions as alternatives
+  to the builtin production "__var__".
+* To make rules, 2 sets of facts (the conditions and the consecuences) must be
+  joined by semicolons, and joined among them with the string " -> ".
+* The conditions and consecuences in the rules can have variables in place of
+  "logical" productions.
+* You can query the knowledge base with facts, that can also contain variables.
+* Variables start with an "X", followed by any number of digits.
+* No grammar production can have a name starting and ending with 2 underscores.
+
+Basic API
+.........
+
+The API is extremelly simple. As seen above, the entry point for syntreenet is
+the KnowledgeBase class. It is instantiated with a string containing a PEG
+appropriate for Parsimonious_ and subject to the restrictions stated above.
+
+Objects of this class offer 3 methods:
+
+* `tell`: accepts a fact or a rule in the form of a string and incorporates it
+  to the knowledge base.
+* `query`: accepts a fact (possibly with variables) in the form of a string,
+  and returns whether the fact can be found in the knowledge base. If it has
+  variables, it will return the variable substitutions that result in facts
+  present in the knowledge base, in the form of a dict of strings to strings.
+* `goal`: provided with a fact, it will return the facts that would be needed
+  to get it to the knowledge base (without directly adding it). This is a form
+  of backtracking.
 
 .. |element| unicode:: U+02208 .. element sign
 .. |subset| unicode:: U+02286 .. subset sign
