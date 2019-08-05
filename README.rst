@@ -131,6 +131,18 @@ environment::
    $ python
    >>> import syntreenet
 
+Test
+....
+
+To run the tests, you can download the sources from a mirror, create a Python_
+environment for it, and use nose2_::
+
+   $ git clone https://git.sr.ht/~enriquepablo/syntreenet
+   $ cd syntreenet/
+   $ virtualenv venv
+   $ source venv/bin/activate
+   $ python setup.py develop easy_install syntreenet[testing]
+   $ nose2
 
 Grammar requirements
 ....................

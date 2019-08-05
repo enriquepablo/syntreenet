@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import setuptools
 
-version = '1.0.0b2'
+version = '1.0.0b3'
 
 with open("requirements.txt", "r") as fh:
     install_requires = [x for x in fh.read().split('\n') if len(x) > 0]
@@ -20,7 +20,7 @@ setuptools.setup(
     url='http://www.syntree.net/',
     author='Enrique Pérez Arnaud',
     author_email='enrique@cazalla.net',
-    description='A library to develop scalable production rule systems',
+    description='A library to develop scalable production rule systems for any parsing expression grammar',
     long_description=long_description,
     long_description_content_type="text/x-rst",
     classifiers=[
