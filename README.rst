@@ -3,9 +3,8 @@
 Syntreenet
 =============
 
------------------------
 Free logics from PEGs
------------------------
+---------------------
 
 Syntreenet facilitates easy development of any finite domain formal
 theory possible in any language described by a `Parsing Expression Grammar`_.
@@ -38,14 +37,14 @@ The grammar for this might be something like::
    word        = ~"[a-z0-9]+"
    ws          = ~"\s+"
 
-With this, we can have "facts" such as::
+With this, we can have facts such as::
 
   a element-of b
   b subset-of c
   c subset-of d
 
-On top of this language, we might want a logic where, if you add the previous 3
-facts to a knowledge base, you would also have that::
+On top of this language, we might want a logic where, if the previous 3
+facts are added to a knowledge base, it would also have that::
 
   a element-of c
   a element-of d
@@ -103,16 +102,17 @@ Goals
 Scalability:
    Adding new facts or rules is essentially O(1) in the number of rules plus
    facts already present in the knowledge base. Theoretically, this is due to
-   the fact that the DAGs that hold the data are only ever searched by
-   consulting Python_ dictionaries. Practically, I am getting a fairly constant
-   value of a couple tenths of a millisecond per fact (this will depend on the
-   complexity of the grammar), up to the capacity of my laptop (totalling
-   around 2 million facts and rules). 
+   the fact that the DAGs that hold the data (facts and rules) are only ever
+   searched by consulting Python_ dictionaries. Practically, I am getting a
+   fairly constant value of a couple tenths of a millisecond per fact (this
+   will depend on the complexity of the grammar), up to the capacity of my
+   laptop (totalling around 2 million facts and rules). 
 
 Universality:
-   The "free" in the heading caption is in the sense of a "free object" over
-   the "set of PEGs": syntreenet knows nothing about the grammar underlying the
-   particular logic it deals with at any particular moment.
+   The "free" in the heading caption is in the sense of a `free object`_ over
+   the formal languages described by PEGs: syntreenet knows nothing about the
+   grammar underlying the particular logic it deals with at any particular
+   moment.
 
 Clear and tested code:
    The code follows best practices for readability and is tested with 99%
@@ -147,8 +147,8 @@ environment for it, and use nose2_::
 Grammar requirements
 ....................
 
-Note that these requirements can be overridden in the init method for
-KnowledgeBase.
+Note that these requirements can be overridden in the ``__init__`` method for
+``KnowledgeBase``.
 
 * The top production in the grammar must be called "fact".
 * The productions that must be in the range of the logical variables must have
@@ -157,11 +157,11 @@ KnowledgeBase.
   to the builtin production "__var__".
 * To make rules, 2 sets of facts (the conditions and the consecuences) must be
   joined by semicolons, and joined among them with the string " -> ".
-* The conditions and consecuences in the rules can have variables in place of
-  "logical" productions.
-* You can query the knowledge base with facts, that can also contain variables.
-* Variables start with an "X", followed by any number of digits.
+* Only conditions, consecuences, and queries can have variables in place of
+  "logical" productions. Facts cannot.
 * No grammar production can have a name starting and ending with 2 underscores.
+
+* Variables start with an "X", followed by any number of digits.
 
 Basic API
 .........
@@ -172,15 +172,15 @@ appropriate for Parsimonious_ and subject to the restrictions stated above.
 
 Objects of this class offer 3 methods:
 
-* `tell`: accepts a fact or a rule in the form of a string and incorporates it
-  to the knowledge base.
-* `query`: accepts a fact (possibly with variables) in the form of a string,
+* ``tell(self, sentence)``: accepts a fact or a rule in the form of a string and
+  incorporates it to the knowledge base.
+* ``query(self, fact)``: accepts a fact (possibly with variables) in the form of a string,
   and returns whether the fact can be found in the knowledge base. If it has
   variables, it will return the variable substitutions that result in facts
   present in the knowledge base, in the form of a dict of strings to strings.
-* `goal`: provided with a fact, it will return the facts that would be needed
+* ``goal(self, fact)``: provided with a fact, it will return the facts that would be needed
   to get it to the knowledge base (without directly adding it). This is a form
-  of backtracking.
+  of backward chaining.
 
 
 
@@ -198,3 +198,4 @@ Copyright (c) 2019 by Enrique Pérez Arnaud <enrique@cazalla.net>
 .. _syntreenet.scripts: https://git.sr.ht/~enriquepablo/syntreenet/tree/master/src/syntreenet/scripts/
 .. _Parsimonious: https://github.com/erikrose/parsimonious
 .. _nose2: https://docs.nose2.io/en/latest/
+.. _`free object`: https://en.wikipedia.org/wiki/Free_object
